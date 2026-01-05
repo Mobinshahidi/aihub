@@ -28,76 +28,96 @@ val aiServices = listOf(
         "General",
         "OpenAI's conversational AI",
         Color(0xFF10A37F)
-    ), AiService(
+    ),
+    AiService(
         "duckai", "Duck AI", "https://duck.ai/", "Privacy", "Privacy-focused AI", Color(0xFF8B4513)
-    ), AiService(
+    ),
+    AiService(
         "venice",
         "Venice",
         "https://venice.ai/chat",
         "Multimodal",
         "Creative AI assistant",
         Color(0xFF9C27B0)
-    ), AiService(
+    ),
+    AiService(
         "grok", "Grok", "https://grok.com/", "Fun", "With a sense of humor", Color(0xFFFF4081)
-    ), AiService(
+    ),
+    AiService(
         "lumo",
         "Lumo",
         "https://lumo.proton.me/",
         "Privacy",
         "Proton's secure AI",
         Color(0xFF2196F3)
-    ), AiService(
+    ),
+    AiService(
         "deepseek",
         "Deepseek",
         "https://chat.deepseek.com/",
         "Coding",
         "AI for developers",
         Color(0xFF00ACC1)
-    ), AiService(
+    ),
+    AiService(
         "gemini",
         "Gemini",
         "https://gemini.google.com/",
         "General",
         "Google's AI assistant",
         Color(0xFFEA4335)
-    ), AiService(
+    ),
+    AiService(
         "claude",
         "Claude",
         "https://claude.ai/chat",
         "Writing",
         "Anthropic's assistant",
         Color(0xFF7B1FA2)
-    ), AiService(
+    ),
+    AiService(
         "perplexity",
         "Perplexity",
         "https://www.perplexity.ai/",
         "Research",
         "AI search engine",
         Color(0xFF00AB97)
-    ), AiService(
+    ),
+    AiService(
         "qwen", "Qwen", "https://chat.qwen.ai/", "Multilingual", "Alibaba's AI", Color(0xFFFF9800)
-    ), AiService(
+    ),
+    AiService(
         "mistral",
         "Mistral",
         "https://chat.mistral.ai/",
         "Efficient",
         "French AI model",
         Color(0xFF3F51B5)
-    ), AiService(
+    ),
+    AiService(
         "blackbox",
         "Blackbox",
         "https://app.blackbox.ai/",
         "Coding",
         "AI code assistant",
-        Color(0x887F1616)
-    ), AiService(
+        Color(0xBFFF0000)
+    ),
+    AiService(
         "copilot",
         "Copilot",
         "https://copilot.microsoft.com/",
         "General",
         "Microsoft's AI assistant",
-        Color(0xFF7CB342)
-    )
+        Color(0xFF4293B3)
+    ),
+    AiService(
+        "brave",
+        "Brave",
+        "https://search.brave.com/ask",
+        "Search",
+        "Brave's search engine",
+        Color(0xFFB2CC25)
+    ),
 )
 
 val serviceIcons = mapOf(
@@ -117,7 +137,7 @@ val serviceIcons = mapOf(
 )
 
 val serviceDomains = mapOf(
-
+    // ChatGPT
     "chatgpt" to listOf(
         "chatgpt.com",
         "openai.com",
@@ -125,58 +145,61 @@ val serviceDomains = mapOf(
         "cdn.oaistatic.com",
         "oaiusercontent.com",
 
-
+        // Auth
         "cdn.auth0.com",
         "auth.openai.com",
         "auth-cdn.oaistatic.com"
     ),
 
-
+    // Duck AI
     "duckai" to listOf(
         "duck.ai", "duckduckgo.com"
     ),
 
-
+    // Venice
     "venice" to listOf(
         "venice.ai"
     ),
 
-
+    // Grok
     "grok" to listOf(
         "grok.com",
 
-
+        // Auth
         "accounts.x.ai"
     ),
 
-
+    // Lumo
     "lumo" to listOf(
-        "lumo.proton.me", "account.proton.me"
+        "lumo.proton.me",
+
+        // Auth
+        "account.proton.me"
     ),
 
-
+    // Deepseek
     "deepseek" to listOf(
         "chat.deepseek.com", "cdn.deepseek.com", "static.deepseek.com"
     ),
 
-
+    // Gemini
     "gemini" to listOf(
         "gemini.google.com",
         "fonts.gstatic.com",
         "www.gstatic.com",
     ),
 
-
+    // Claude
     "claude" to listOf(
         "claude.ai"
     ),
 
-
+    // Perplexity
     "perplexity" to listOf(
         "www.perplexity.ai", "pplx-next-static-public.perplexity.ai"
     ),
 
-
+    // Qwen
     "qwen" to listOf(
         "chat.qwen.ai",
         "qwen.ai",
@@ -193,22 +216,27 @@ val serviceDomains = mapOf(
         "tdum.alibaba.com"
     ),
 
-
+    // Mistral
     "mistral" to listOf(
         "chat.mistral.ai", "mistral.ai", "api.mistral.ai", "console.mistral.ai", "mistralcdn.net",
 
-
-        "v2.auth.mistral.ai"
+        // Auth
+        "v2.auth.mistral.ai",
     ),
 
-
+    // Blackbox
     "blackbox" to listOf(
         "app.blackbox.ai", "js.stripe.com", "m.stripe.network"
     ),
 
-
+    // Copilot
     "copilot" to listOf(
         "copilot.microsoft.com"
+    ),
+
+    // Brave
+    "brave" to listOf(
+        "cdn.search.brave.com", "search.brave.com"
     )
 )
 
@@ -217,6 +245,7 @@ val alwaysBlockedDomains = mapOf(
         "ab.chatgpt.com"
     ),
     "duckai" to listOf(
+        "improving.duckduckgo.com"
     ),
     "grok" to listOf(
         "www.google-analytics.com",
