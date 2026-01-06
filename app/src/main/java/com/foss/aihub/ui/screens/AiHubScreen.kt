@@ -87,7 +87,13 @@ fun AiHubApp(activity: MainActivity) {
     }
 
 
-    val hasCurrentError by derivedStateOf { errorStates.containsKey(selectedService.id) }
+    val hasCurrentError by derivedStateOf {
+        errorStates.containsKey(selectedService.id) && errorStates[selectedService.id]?.let {
+            ErrorType.shouldShowOverlay(
+                it.first
+            )
+        } == true
+    }
     val currentError by derivedStateOf { errorStates[selectedService.id] }
 
 
@@ -223,12 +229,17 @@ fun AiHubApp(activity: MainActivity) {
                                         showLinkDialog = true
                                     },
                                     onError = { errorCode, description ->
-
-                                        errorStates[selectedService.id] =
-                                            Pair(errorCode, description)
-                                        webViewStates[selectedService.id] = WebViewState.ERROR
-
-                                        webViews[selectedService.id]?.visibility = View.GONE
+                                        if (ErrorType.shouldShowOverlay(errorCode)) {
+                                            errorStates[selectedService.id] =
+                                                Pair(errorCode, description)
+                                            webViewStates[selectedService.id] = WebViewState.ERROR
+                                            webViews[selectedService.id]?.visibility = View.GONE
+                                        } else {
+                                            // Suppress overlay for 500+ errors and unknowns
+                                            errorStates.remove(selectedService.id)
+                                            webViewStates[selectedService.id] = WebViewState.SUCCESS
+                                            webViews[selectedService.id]?.visibility = View.VISIBLE
+                                        }
                                     })
                                 webViews[selectedService.id] = newWebView
                                 addView(newWebView)
@@ -250,13 +261,11 @@ fun AiHubApp(activity: MainActivity) {
                         currentRoot = root
                         webViews.forEach { (id, wv) ->
                             if (wv.parent == root) {
-
                                 val shouldBeVisible =
                                     id == selectedService.id && !errorStates.containsKey(id)
                                 wv.visibility = if (shouldBeVisible) View.VISIBLE else View.GONE
                             } else if (id == selectedService.id && wv.parent == null) {
                                 root.addView(wv)
-
                                 wv.visibility = if (errorStates.containsKey(id)) {
                                     View.GONE
                                 } else {
@@ -277,7 +286,6 @@ fun AiHubApp(activity: MainActivity) {
                                     loadingStates[selectedService.id] = isLoading
                                     if (isLoading) {
                                         webViewStates[selectedService.id] = WebViewState.LOADING
-
                                         errorStates.remove(selectedService.id)
                                     } else {
 
@@ -325,7 +333,6 @@ fun AiHubApp(activity: MainActivity) {
                         )
                     }
 
-
                     if (hasCurrentError && currentError != null) {
                         val (errorCode, errorMessage) = currentError!!
                         ErrorOverlay(
@@ -335,7 +342,6 @@ fun AiHubApp(activity: MainActivity) {
                             serviceName = selectedService.name,
                             accentColor = selectedService.accentColor,
                             onRetry = {
-
                                 errorStates.remove(selectedService.id)
                                 webViews[selectedService.id]?.reload()
                                 webViewStates[selectedService.id] = WebViewState.LOADING
@@ -353,12 +359,10 @@ fun AiHubApp(activity: MainActivity) {
         when {
             drawerState.isOpen -> scope.launch { drawerState.close() }
             hasCurrentError -> {
-
                 errorStates.remove(selectedService.id)
                 if (webViews[selectedService.id]?.canGoBack() == true) {
                     webViews[selectedService.id]?.goBack()
                 } else {
-
                     webViews[selectedService.id]?.visibility = View.VISIBLE
                     webViewStates[selectedService.id] = WebViewState.SUCCESS
                 }

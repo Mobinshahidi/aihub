@@ -113,7 +113,6 @@ fun ErrorOverlay(
                             .padding(bottom = 24.dp)
                     )
 
-
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -144,7 +143,6 @@ fun ErrorOverlay(
                         }
                     }
 
-
                     if (errorMessage != null && errorMessage.isNotBlank()) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Card(
@@ -174,7 +172,6 @@ fun ErrorOverlay(
                 }
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Service: $serviceName • Code: $errorCode",
@@ -185,44 +182,52 @@ fun ErrorOverlay(
         }
     }
 }
-
 enum class ErrorType(
-    val icon: ImageVector, val title: String, val description: (String, Int, String?) -> String
+    val icon: ImageVector,
+    val title: String,
+    val description: (String, Int, String?) -> String
 ) {
     NETWORK_ERROR(
-        icon = Icons.Outlined.WifiOff, title = "No Connection", description = { serviceName, _, _ ->
+        icon = Icons.Outlined.WifiOff,
+        title = "No Connection",
+        description = { serviceName, _, _ ->
             "Can't reach $serviceName. Check your internet connection."
-        }),
+        }
+    ),
     HTTP_ERROR(
         icon = Icons.Outlined.ErrorOutline,
         title = "Server Error",
         description = { serviceName, errorCode, _ ->
             "$serviceName returned error $errorCode"
-        }),
+        }
+    ),
     SSL_ERROR(
         icon = Icons.Outlined.ErrorOutline,
         title = "Security Issue",
         description = { serviceName, _, _ ->
             "Can't securely connect to $serviceName"
-        }),
-    UNKNOWN_ERROR(
-        icon = Icons.Outlined.ErrorOutline,
-        title = "Failed to Load",
-        description = { serviceName, _, message ->
-            "Couldn't load $serviceName. ${message?.take(80) ?: "Please try again."}"
-        });
+        }
+    );
 
-    fun getDescription(serviceName: String, errorCode: Int, errorMessage: String?): String {
-        return description(serviceName, errorCode, errorMessage)
-    }
+    fun getDescription(serviceName: String, errorCode: Int, errorMessage: String?): String =
+        description(serviceName, errorCode, errorMessage)
 
     companion object {
+        fun shouldShowOverlay(errorCode: Int): Boolean {
+            return when (errorCode) {
+                -2, -4, -6, -7, -8, -10, -11 -> true  // includes net::ERR_FAILED variants
+                -3 -> true  // SSL error
+                in 400..499 -> true  // Client errors
+                else -> false
+            }
+        }
+
         fun fromErrorCode(errorCode: Int): ErrorType {
             return when (errorCode) {
-                -2, in 400..599 -> HTTP_ERROR
+                -2, -4, -6, -7, -8, -10, -11 -> NETWORK_ERROR
                 -3 -> SSL_ERROR
-                in listOf(-2, -4, -6, -7, -8, -10) -> NETWORK_ERROR
-                else -> UNKNOWN_ERROR
+                in 400..499 -> HTTP_ERROR
+                else -> NETWORK_ERROR  // fallback, but shouldShowOverlay will filter
             }
         }
     }
