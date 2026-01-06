@@ -25,99 +25,115 @@ val aiServices = listOf(
         "chatgpt",
         "ChatGPT",
         "https://chatgpt.com/",
-        "General",
-        "OpenAI's conversational AI",
+        "General Purpose",
+        "Versatile conversation assistant",
         Color(0xFF10A37F)
-    ),
-    AiService(
-        "duckai", "Duck AI", "https://duck.ai/", "Privacy", "Privacy-focused AI", Color(0xFF8B4513)
-    ),
-    AiService(
+    ), AiService(
+        "duck",
+        "Duck AI",
+        "https://duck.ai/",
+        "Privacy First",
+        "Anonymous AI conversations",
+        Color(0xFF8B7355)
+    ), AiService(
         "venice",
         "Venice",
         "https://venice.ai/chat",
-        "Multimodal",
-        "Creative AI assistant",
+        "Creative Arts",
+        "Multimedia creative assistant",
         Color(0xFF9C27B0)
-    ),
-    AiService(
-        "grok", "Grok", "https://grok.com/", "Fun", "With a sense of humor", Color(0xFFFF4081)
-    ),
-    AiService(
+    ), AiService(
+        "grok",
+        "Grok",
+        "https://grok.com/",
+        "Entertainment",
+        "Witty humorous companion",
+        Color(0xFFE91E63)
+    ), AiService(
         "lumo",
         "Lumo",
         "https://lumo.proton.me/",
-        "Privacy",
-        "Proton's secure AI",
+        "Secure AI",
+        "Encrypted privacy assistant",
         Color(0xFF2196F3)
-    ),
-    AiService(
+    ), AiService(
         "deepseek",
         "Deepseek",
         "https://chat.deepseek.com/",
-        "Coding",
-        "AI for developers",
+        "Development",
+        "Code generation specialist",
         Color(0xFF00ACC1)
-    ),
-    AiService(
+    ), AiService(
         "gemini",
         "Gemini",
         "https://gemini.google.com/",
-        "General",
-        "Google's AI assistant",
-        Color(0xFFEA4335)
-    ),
-    AiService(
+        "Multimodal",
+        "Google ecosystem integration",
+        Color(0xFF4285F4)
+    ), AiService(
         "claude",
         "Claude",
         "https://claude.ai/chat",
-        "Writing",
-        "Anthropic's assistant",
-        Color(0xFF7B1FA2)
-    ),
-    AiService(
+        "Professional Writing",
+        "Long-form content expert",
+        Color(0xFF673AB7)
+    ), AiService(
         "perplexity",
         "Perplexity",
         "https://www.perplexity.ai/",
         "Research",
-        "AI search engine",
+        "Citation-based search engine",
         Color(0xFF00AB97)
-    ),
-    AiService(
-        "qwen", "Qwen", "https://chat.qwen.ai/", "Multilingual", "Alibaba's AI", Color(0xFFFF9800)
-    ),
-    AiService(
+    ), AiService(
+        "qwen",
+        "Qwen",
+        "https://chat.qwen.ai/",
+        "Multilingual",
+        "100+ languages support",
+        Color(0xFFFF6D00)
+    ), AiService(
         "mistral",
         "Mistral",
         "https://chat.mistral.ai/",
-        "Efficient",
-        "French AI model",
+        "Efficiency",
+        "Fast reasoning model",
         Color(0xFF3F51B5)
-    ),
-    AiService(
+    ), AiService(
         "blackbox",
         "Blackbox",
         "https://app.blackbox.ai/",
         "Coding",
-        "AI code assistant",
-        Color(0xBFFF0000)
-    ),
-    AiService(
+        "Code optimization assistant",
+        Color(0xFFFF5722)
+    ), AiService(
         "copilot",
         "Copilot",
         "https://copilot.microsoft.com/",
-        "General",
-        "Microsoft's AI assistant",
-        Color(0xFF4293B3)
-    ),
-    AiService(
+        "Productivity",
+        "Microsoft 365 integration",
+        Color(0xFF0078D4)
+    ), AiService(
         "brave",
         "Brave",
         "https://search.brave.com/ask",
         "Search",
-        "Brave's search engine",
-        Color(0xFFB2CC25)
-    ),
+        "Privacy-focused searching",
+        Color(0xFF198038)
+    ), AiService(
+        "huggingface",
+        "HuggingFace",
+        "https://huggingface.co/chat",
+        "Open Source",
+        "Open model experimentation",
+        Color(0xFFFFD600)
+    ), AiService(
+        "meta",
+        "Meta AI",
+        "https://www.meta.ai/",
+        "Social",
+        "Social platform integration",
+        Color(0xFF0081FB)
+    )
 )
 
 val serviceIcons = mapOf(
@@ -152,7 +168,7 @@ val serviceDomains = mapOf(
     ),
 
     // Duck AI
-    "duckai" to listOf(
+    "duck" to listOf(
         "duck.ai", "duckduckgo.com"
     ),
 
@@ -237,6 +253,16 @@ val serviceDomains = mapOf(
     // Brave
     "brave" to listOf(
         "cdn.search.brave.com", "search.brave.com"
+    ),
+
+    // HuggingFace
+    "huggingface" to listOf(
+        "huggingface.co", "token.awswaf.com"
+    ),
+
+    // Meta
+    "meta" to listOf(
+        "www.meta.ai", "static.xx.fbcdn.net", "video.fdel64-1.fna.fbcdn.net"
     )
 )
 
@@ -244,7 +270,7 @@ val alwaysBlockedDomains = mapOf(
     "chatgpt" to listOf(
         "ab.chatgpt.com"
     ),
-    "duckai" to listOf(
+    "duck" to listOf(
         "improving.duckduckgo.com"
     ),
     "grok" to listOf(
