@@ -364,7 +364,8 @@ val commonAuthDomains = listOf(
     "appleid.apple.com",
     "login.live.com",
     "login.microsoftonline.com",
-    "github.githubassets.com"
+    "github.githubassets.com",
+    "challenges.cloudflare.com"
 )
 
 val TRACKING_PARAMS = setOf(

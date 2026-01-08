@@ -182,6 +182,7 @@ fun ErrorOverlay(
         }
     }
 }
+
 enum class ErrorType(
     val icon: ImageVector,
     val title: String,
@@ -215,6 +216,7 @@ enum class ErrorType(
     companion object {
         fun shouldShowOverlay(errorCode: Int): Boolean {
             return when (errorCode) {
+                in 500..599 -> false // Server error
                 -2, -4, -6, -7, -8, -10, -11 -> true  // includes net::ERR_FAILED variants
                 -3 -> true  // SSL error
                 in 400..499 -> true  // Client errors

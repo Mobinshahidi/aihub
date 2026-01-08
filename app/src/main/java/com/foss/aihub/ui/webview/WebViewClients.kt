@@ -49,8 +49,8 @@ class ProgressTrackingWebViewClient(
             hasErrorOccurred = true
             onProgressUpdate(0)
             onLoadingStateChange(false)
-            val errorCode = error?.errorCode ?: -1
-            val errorDescription = error?.description?.toString() ?: "Unknown error"
+            val errorCode = error?.errorCode ?: return
+            val errorDescription = error.description?.toString() ?: "Unknown error"
             onError(errorCode, errorDescription)
             Log.e("WEBVIEW", "❌ Error loading ${service.name}: $errorCode - $errorDescription")
         }
@@ -64,8 +64,8 @@ class ProgressTrackingWebViewClient(
             hasErrorOccurred = true
             onProgressUpdate(0)
             onLoadingStateChange(false)
-            val statusCode = errorResponse?.statusCode ?: -2
-            onError(-2, "HTTP Error $statusCode")
+            val statusCode = errorResponse?.statusCode ?: return
+            onError(errorResponse.statusCode, "HTTP Error $statusCode")
             Log.e("WEBVIEW", "❌ HTTP Error loading ${service.name}: $statusCode")
         }
     }
