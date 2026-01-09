@@ -14,8 +14,8 @@ android {
         applicationId = "com.foss.aihub"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2 // Version Code
-        versionName = "1.0.1" // Version Name
+        versionCode = 3 // Version Code
+        versionName = "1.0.2" // Version Name
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

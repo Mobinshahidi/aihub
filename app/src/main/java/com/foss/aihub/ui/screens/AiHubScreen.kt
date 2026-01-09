@@ -3,6 +3,7 @@ package com.foss.aihub.ui.screens
 import android.annotation.SuppressLint
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
@@ -63,17 +64,12 @@ fun AiHubApp(activity: MainActivity) {
     val settingsManager = remember { activity.settingsManager }
     val settings by settingsManager.settingsFlow.collectAsState()
 
-
     var showLinkDialog by remember { mutableStateOf(false) }
     var selectedLink by remember { mutableStateOf<LinkData?>(null) }
-
+    var previousEnabledServices by remember { mutableStateOf(settings.enabledServices) }
 
     val loadingProgress = remember { mutableStateMapOf<String, Int>() }
-
-
     val webViewStates = remember { mutableStateMapOf<String, WebViewState>() }
-
-
     val errorStates = remember { mutableStateMapOf<String, Pair<Int, String>>() }
 
     val initialId = if (settings.loadLastOpenedAI) {
@@ -95,7 +91,6 @@ fun AiHubApp(activity: MainActivity) {
         } == true
     }
     val currentError by derivedStateOf { errorStates[selectedService.id] }
-
 
     var previousConnectionBlocking by remember {
         mutableStateOf(WebViewSecurity.isBlockingEnabled)
@@ -234,11 +229,6 @@ fun AiHubApp(activity: MainActivity) {
                                                 Pair(errorCode, description)
                                             webViewStates[selectedService.id] = WebViewState.ERROR
                                             webViews[selectedService.id]?.visibility = View.GONE
-                                        } else {
-                                            // Suppress overlay for 500+ errors and unknowns
-                                            errorStates.remove(selectedService.id)
-                                            webViewStates[selectedService.id] = WebViewState.SUCCESS
-                                            webViews[selectedService.id]?.visibility = View.VISIBLE
                                         }
                                     })
                                 webViews[selectedService.id] = newWebView
@@ -428,12 +418,62 @@ fun AiHubApp(activity: MainActivity) {
         }
     }
 
+    LaunchedEffect(showSettingsScreen) {
+        if (!showSettingsScreen) {
+            val currentEnabled = settings.enabledServices
+
+            val disabledServices = previousEnabledServices.filter { it !in currentEnabled }
+            val enabledServices = currentEnabled.filter { it !in previousEnabledServices }
+
+            if (disabledServices.isNotEmpty() || enabledServices.isNotEmpty()) {
+                Log.d("AI_HUB", "Enabled services changed: disabled=${disabledServices.size}, enabled=${enabledServices.size}")
+
+                if (selectedService.id !in currentEnabled) {
+                    val firstEnabled = aiServices.firstOrNull { it.id in currentEnabled }
+                        ?: aiServices.firstOrNull { it.id == settings.defaultServiceId }
+                    if (firstEnabled != null) {
+                        selectedService = firstEnabled
+                    }
+                }
+
+                val toRemove = mutableListOf<String>()
+                webViews.forEach { (id, webView) ->
+                    if (id !in currentEnabled) {
+                        (webView.parent as? ViewGroup)?.removeView(webView)
+                        webView.destroy()
+                        toRemove.add(id)
+                    }
+                }
+
+                toRemove.forEach { id ->
+                    webViews.remove(id)
+                    webViewStates.remove(id)
+                    errorStates.remove(id)
+                    loadingStates.remove(id)
+                    loadingProgress.remove(id)
+                    loadedServices.remove(id)
+                }
+
+                Log.d("AI_HUB", "Cleaned up ${toRemove.size} disabled services after returning from settings")
+
+                previousEnabledServices = currentEnabled
+            }
+        } else {
+            previousEnabledServices = settings.enabledServices
+        }
+    }
+
     if (showSettingsScreen) {
-        BackHandler { showSettingsScreen = false; applySettingsToAllWebViews(false) }
+        BackHandler {
+            showSettingsScreen = false
+            applySettingsToAllWebViews(false)
+        }
+
         SettingsScreen(
             onBack = { showSettingsScreen = false; applySettingsToAllWebViews(false) },
             settingsManager = settingsManager,
-            onManageServicesClick = { showManageServices = true })
+            onManageServicesClick = { showManageServices = true }
+        )
     }
 
     if (showManageServices) {

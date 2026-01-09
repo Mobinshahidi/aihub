@@ -37,14 +37,16 @@ class SettingsManager(context: Context) {
                 Log.d("AI_HUB", "Cleaning removed services - enabled: ${removedFromEnabled.size}, order: ${removedFromOrder.size}")
             }
 
-            val newEnabled = (settings.enabledServices.filter { it in currentServices }.toSet() + currentServices).toMutableSet()
-            val newOrder = (settings.serviceOrder.filter { it in currentServices } + currentServices.filter { it !in settings.serviceOrder }).toMutableList()
+            val newEnabled = settings.enabledServices.filter { it in currentServices }.toMutableSet()
+            val existingOrder = settings.serviceOrder.filter { it in currentServices }
+            val newServices = currentServices.filter { it !in existingOrder }
+            val newOrder = (existingOrder + newServices).toMutableList()
 
             settings.enabledServices = newEnabled
             settings.serviceOrder = newOrder
 
             if (settings.defaultServiceId !in currentServices) {
-                val newDefault = currentServices.firstOrNull() ?: "chatgpt"
+                val newDefault = newEnabled.firstOrNull() ?: currentServices.firstOrNull() ?: "chatgpt"
                 Log.w("AI_HUB", "Default changed from '${settings.defaultServiceId}' to '$newDefault'")
                 settings.defaultServiceId = newDefault
             }

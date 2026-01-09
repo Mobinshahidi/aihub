@@ -279,7 +279,8 @@ val serviceDomains = mapOf(
         "g.alicdn.com",
         "aplus.qwen.ai",
         "aliyuncs.com",
-        "tdum.alibaba.com"
+        "tdum.alibaba.com",
+        "sg-wum.alibaba.com"
     ),
 
     // Mistral
