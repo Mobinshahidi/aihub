@@ -29,13 +29,13 @@ fun updateWebViewSettings(
         displayZoomControls = false
         when (settings.fontSize.lowercase()) {
             "x-small" -> {
-                textZoom = 70
+                textZoom = 80
                 defaultFontSize = 14
                 defaultFixedFontSize = 13
             }
 
             "small" -> {
-                textZoom = 85
+                textZoom = 90
                 defaultFontSize = 15
                 defaultFixedFontSize = 14
             }
@@ -47,13 +47,13 @@ fun updateWebViewSettings(
             }
 
             "large" -> {
-                textZoom = 115
+                textZoom = 110
                 defaultFontSize = 18
                 defaultFixedFontSize = 16
             }
 
             "x-large" -> {
-                textZoom = 130
+                textZoom = 120
                 defaultFontSize = 20
                 defaultFixedFontSize = 17
             }
