@@ -1,6 +1,7 @@
 package com.foss.aihub.utils
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material.icons.rounded.AutoAwesomeMosaic
 import androidx.compose.material.icons.rounded.Brush
@@ -178,6 +179,14 @@ val aiServices = listOf(
         "Enterprise AI platform",
         Color(0xFF00695C) // Teal 700
     ),
+    AiService(
+        "dola",
+        "Dola",
+        "https://www.dola.com/chat",
+        "General",
+        "AI conversation assistant",
+        Color(0xFF009688)
+    )
 )
 
 val serviceIcons = mapOf(
@@ -200,6 +209,7 @@ val serviceIcons = mapOf(
     "euria" to Icons.Rounded.Language,
     "zai" to Icons.Rounded.Forum,
     "h2ogpte" to Icons.Rounded.DataObject,
+    "dola" to Icons.AutoMirrored.Rounded.Chat
 )
 
 val serviceDomains = mapOf(
@@ -340,6 +350,20 @@ val serviceDomains = mapOf(
 
         // Auth
         "id.public.h2o.ai"
+    ),
+
+    // Dola
+    "dola" to listOf(
+        "www.dola.com",
+        "sf-flow-web-cdn.ciciaicdn.com",
+        "opt-i18n.ciciai.com",
+        "mcs-sg.ciciai.com",
+        "sf-sf-flow-web-cdn-nontt.ciciaicdn.com",
+        "p16-flow-sign-sg.ciciai.com",
+        "vmweb-sg.ciciai.com",
+        "mssdk-i18n-sg.ciciai.com",
+        "sf-rc2.yhgfb-static.com",
+        "sf-rc.yhgfb-static.com"
     )
 )
 
