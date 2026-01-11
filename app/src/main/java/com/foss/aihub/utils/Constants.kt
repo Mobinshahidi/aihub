@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.ui.graphics.Color
 import com.foss.aihub.models.AiService
+import androidx.compose.material.icons.rounded.Psychology
 
 const val USER_AGENT =
     "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Mobile Safari/537.36"
@@ -186,12 +187,20 @@ val aiServices = listOf(
         "General",
         "AI conversation assistant",
         Color(0xFF009688)
+    ),
+        AiService(
+        "khoj",
+        "Khoj",
+        "https://app.khoj.dev/",
+        "Productivity",
+        "Personal AI assistant",
+        Color(0xFFFF9800) // Orange (Khoj Brand color)
     )
 )
 
 val serviceIcons = mapOf(
     "chatgpt" to Icons.Rounded.FlashOn,
-    "duckai" to Icons.Rounded.PrivacyTip,
+    "duck" to Icons.Rounded.PrivacyTip,
     "venice" to Icons.Rounded.Brush,
     "grok" to Icons.Rounded.SentimentVerySatisfied,
     "lumo" to Icons.Rounded.Shield,
@@ -209,7 +218,8 @@ val serviceIcons = mapOf(
     "euria" to Icons.Rounded.Language,
     "zai" to Icons.Rounded.Forum,
     "h2ogpte" to Icons.Rounded.DataObject,
-    "dola" to Icons.AutoMirrored.Rounded.Chat
+    "dola" to Icons.AutoMirrored.Rounded.Chat,
+    "khoj" to Icons.Rounded.Psychology
 )
 
 val serviceDomains = mapOf(
@@ -364,6 +374,14 @@ val serviceDomains = mapOf(
         "mssdk-i18n-sg.ciciai.com",
         "sf-rc2.yhgfb-static.com",
         "sf-rc.yhgfb-static.com"
+    ),
+    
+    // Khoj
+    "khoj" to listOf(
+        "app.khoj.dev",
+        "khoj.dev",
+        "khoj.auth0.com",
+        "cdn.khoj.dev"
     )
 )
 
