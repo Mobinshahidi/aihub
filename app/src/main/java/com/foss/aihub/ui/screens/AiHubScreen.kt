@@ -272,26 +272,9 @@ fun AiHubApp(activity: MainActivity) {
                                         showLinkDialog = true
                                     },
                                     onError = { errorCode, description ->
-                                        Log.w(
-                                            "AI_HUB", "→ $errorCode | $description | hide=${
-                                                errorCode !in 500..599 && ErrorType.shouldShowOverlay(
-                                                    errorCode
-                                                )
-                                            }"
-                                        )
                                         errorStates[selectedService.id] = errorCode to description
-
-                                        val isCriticalError = when {
-                                            errorCode < 0 -> true   // network, ssl, timeout, etc.
-                                            errorCode in 400..499 -> true   // client errors (forbidden, not found...)
-                                            errorCode in 500..599 -> false  // server errors → show server's page
-                                            else -> true   // everything else treated as critical
-                                        }
-
-                                        if (isCriticalError) {
-                                            webViewStates[selectedService.id] = WebViewState.ERROR
-                                            webViews[selectedService.id]?.visibility = View.GONE
-                                        }
+                                        webViewStates[selectedService.id] = WebViewState.ERROR
+                                        webViews[selectedService.id]?.visibility = View.GONE
                                     })
                                 webViews[selectedService.id] = newWebView
                                 addView(newWebView)
@@ -360,26 +343,9 @@ fun AiHubApp(activity: MainActivity) {
                                     showLinkDialog = true
                                 },
                                 onError = { errorCode, description ->
-                                    Log.w(
-                                        "AI_HUB", "→ $errorCode | $description | hide=${
-                                            errorCode !in 500..599 && ErrorType.shouldShowOverlay(
-                                                errorCode
-                                            )
-                                        }"
-                                    )
                                     errorStates[selectedService.id] = errorCode to description
-
-                                    val isCriticalError = when {
-                                        errorCode < 0 -> true   // network, ssl, timeout, etc.
-                                        errorCode in 400..499 -> true   // client errors (forbidden, not found...)
-                                        errorCode in 500..599 -> false  // server errors → show server's page
-                                        else -> true   // everything else treated as critical
-                                    }
-
-                                    if (isCriticalError) {
-                                        webViewStates[selectedService.id] = WebViewState.ERROR
-                                        webViews[selectedService.id]?.visibility = View.GONE
-                                    }
+                                    webViewStates[selectedService.id] = WebViewState.ERROR
+                                    webViews[selectedService.id]?.visibility = View.GONE
                                 })
                             webViews[selectedService.id] = newWebView
                             root.addView(newWebView)
@@ -388,7 +354,6 @@ fun AiHubApp(activity: MainActivity) {
                         }
                     }, modifier = Modifier.fillMaxSize()
                     )
-
 
                     if (isCurrentLoading && !hasCurrentError) {
                         LoadingOverlay(

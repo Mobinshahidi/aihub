@@ -64,6 +64,8 @@ class ProgressTrackingWebViewClient(
         view: WebView?, request: WebResourceRequest?, errorResponse: WebResourceResponse?
     ) {
         super.onReceivedHttpError(view, request, errorResponse)
+        // Ignoring server error
+        if (errorResponse?.statusCode in 500..599) return
         if (request?.isForMainFrame == true) {
             hasErrorOccurred = true
             onProgressUpdate(0)
