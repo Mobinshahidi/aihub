@@ -90,7 +90,6 @@ fun SettingsScreen(
 
     val fontSizeOptions = listOf("x-small", "small", "medium", "large", "x-large")
 
-
     LaunchedEffect(loadLastAi) {
         settingsManager.updateSettings { it.loadLastOpenedAI = loadLastAi }
     }
@@ -107,7 +106,6 @@ fun SettingsScreen(
         }
     }
 
-
     LaunchedEffect(selectedFontSize) {
         settingsManager.updateSettings { it.fontSize = selectedFontSize }
     }
@@ -115,7 +113,6 @@ fun SettingsScreen(
     LaunchedEffect(enableZoom) {
         settingsManager.updateSettings { it.enableZoom = enableZoom }
     }
-
 
     val orderedServices = remember(settings) {
         settings.serviceOrder.filter { it in settings.enabledServices }
@@ -171,7 +168,6 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                         )
 
-
                         AnimatedVisibility(
                             visible = !loadLastAi,
                             enter = fadeIn() + expandVertically(),
@@ -185,7 +181,6 @@ fun SettingsScreen(
                                     iconColor = MaterialTheme.colorScheme.primary,
                                     showTrailing = false
                                 )
-
 
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -248,7 +243,6 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                         )
 
-
                         SettingItem(
                             title = "Manage AI Services",
                             description = "Enable/disable AI assistants",
@@ -266,7 +260,6 @@ fun SettingsScreen(
                     }
                 }
             }
-
 
             item {
                 SectionHeader(
@@ -302,7 +295,6 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                         )
 
-
                         SettingItem(
                             title = "Font Size",
                             description = "Adjust text size in WebView",
@@ -318,7 +310,6 @@ fun SettingsScreen(
                                 )
                             })
 
-
                         AnimatedVisibility(
                             visible = showFontSizeOptions,
                             enter = fadeIn() + expandVertically(),
@@ -333,7 +324,6 @@ fun SettingsScreen(
                                     Row(modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-
                                             selectedFontSize = option
                                         }
                                         .padding(vertical = 12.dp),
@@ -368,6 +358,7 @@ fun SettingsScreen(
                     }
                 }
             }
+
             item {
                 SectionHeader(
                     title = "Advanced",
@@ -401,8 +392,6 @@ fun SettingsScreen(
                     }
                 }
             }
-
-
 
             item {
                 SectionHeader(
@@ -494,14 +483,12 @@ fun SettingItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = iconColor,
             modifier = Modifier.size(24.dp)
         )
-
 
         Column(
             modifier = Modifier.weight(1f)
@@ -522,7 +509,6 @@ fun SettingItem(
             }
         }
 
-
         if (showTrailing && trailingContent != null) {
             trailingContent()
         }
@@ -538,7 +524,6 @@ private fun TipItem(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth()
     ) {
-
         Surface(
             shape = CircleShape,
             tonalElevation = 2.dp,
@@ -554,7 +539,6 @@ private fun TipItem(
                 )
             }
         }
-
 
         Text(
             text = text,
