@@ -191,7 +191,7 @@ val aiServices = listOf(
     AiService(
         "khoj",
         "Khoj",
-        "https://app.khoj.dev/",
+        "https://app.khoj.dev/?v=app",
         "Productivity",
         "Personal AI assistant",
         Color(0xFFFF9800) // Orange
