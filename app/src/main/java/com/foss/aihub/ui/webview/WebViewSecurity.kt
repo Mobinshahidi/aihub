@@ -1,10 +1,9 @@
 package com.foss.aihub.ui.webview
 
+import android.content.Context
 import android.util.Log
 import androidx.core.net.toUri
-import com.foss.aihub.utils.alwaysBlockedDomains
-import com.foss.aihub.utils.commonAuthDomains
-import com.foss.aihub.utils.serviceDomains
+import com.foss.aihub.utils.SettingsManager
 
 object WebViewSecurity {
     private var _isBlockingEnabled = true
@@ -15,26 +14,26 @@ object WebViewSecurity {
             _isBlockingEnabled = value
         }
 
-    fun allowConnectivityForService(serviceId: String, url: String): Boolean {
-        Log.d("AI_HUB", "Checking URL for $serviceId: $url")
+    private lateinit var settings: SettingsManager
 
-
-        if (url.isBlank()) {
-            Log.d("AI_HUB", "❌ Blank URL")
-            return false
+    fun init(context: Context) {
+        if (!::settings.isInitialized) {
+            settings = SettingsManager(context.applicationContext)
         }
+    }
 
-        if (url.startsWith("blob:")) {
-            Log.d("AI_HUB", "✅ Allowed: Blob URL for download - $url")
+    fun allowConnectivityForService(serviceId: String, url: String): Boolean {
+        if (!::settings.isInitialized) {
+            Log.w("WebViewSecurity", "Not initialized → allowing")
             return true
         }
 
-        val allowedInternalUrls = listOf(
-            "about:blank", "data:text/html", "file://", "content://"
-        )
+        if (url.isBlank()) return false
 
-        if (allowedInternalUrls.any { url.startsWith(it) }) {
-            Log.d("AI_HUB", "✅ Allowed internal URL: $url")
+        if (url.startsWith("blob:") || url.startsWith("about:blank") || url.startsWith("data:") || url.startsWith(
+                "file:"
+            ) || url.startsWith("content:")
+        ) {
             return true
         }
 
@@ -42,50 +41,23 @@ object WebViewSecurity {
         val scheme = uri.scheme ?: ""
         val host = uri.host ?: ""
 
-        Log.d("AI_HUB", "Scheme: $scheme, Host: $host")
+        if (host.isEmpty()) return true
 
-        if (scheme != "https" && host.isNotEmpty()) {
-            Log.d("AI_HUB", "❌ Non-HTTPS external URL: $url")
+        if (scheme != "https") return false
+
+        val alwaysBlocked = settings.getAlwaysBlockedDomains().getOrDefault(serviceId, emptyList())
+
+        if (alwaysBlocked.any { host == it || host.endsWith(".$it") }) {
             return false
         }
 
-
-        if (host.isEmpty()) {
-            Log.d("AI_HUB", "✅ No host (data URI)")
+        val commonAuth = settings.getCommonAuthDomains()
+        if (commonAuth.any { host == it || host.endsWith(".$it") }) {
             return true
         }
 
-        for (blockedDomain in alwaysBlockedDomains.getOrDefault(serviceId, emptyList())) {
-            if (host == blockedDomain || host.endsWith(".$blockedDomain")) {
-                Log.d("AI_HUB", "❌ Always blocked: $host")
-                return false
-            }
-        }
+        val allowed = settings.getServiceDomains()[serviceId] ?: return false
 
-        val isAuthDomain = commonAuthDomains.any { authDomain ->
-            host.contains(authDomain)
-        }
-
-        if (isAuthDomain) {
-            Log.d("AI_HUB", "✅ Allowed: Common auth domain - $host")
-            return true
-        }
-
-        val allowedDomains = serviceDomains[serviceId]
-        if (allowedDomains == null) {
-            Log.d("AI_HUB", "❌ No domain rules for service: $serviceId")
-            return false
-        }
-
-        val isAllowed = allowedDomains.any { domain ->
-            host == domain || host.endsWith(".$domain")
-        }
-        if (isAllowed) {
-            Log.d("AI_HUB", "✅ Allowed by $serviceId domains: $host")
-            return true
-        }
-
-        Log.d("AI_HUB", "❌ Domain not allowed for $serviceId: $host")
-        return false
+        return allowed.any { host == it || host.endsWith(".$it") }
     }
 }

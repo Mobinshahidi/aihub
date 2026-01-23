@@ -18,6 +18,63 @@ class SettingsManager(context: Context) {
     private val _settingsFlow = MutableStateFlow(loadSettings())
     val settingsFlow: StateFlow<AppSettings> = _settingsFlow
 
+    companion object {
+        private const val KEY_DOMAIN_CONFIG_VERSION = "domain_config_version"
+        private const val KEY_SERVICE_DOMAINS = "service_domains_json"
+        private const val KEY_ALWAYS_BLOCKED_DOMAINS = "always_blocked_domains_json"
+        private const val KEY_COMMON_AUTH_DOMAINS = "common_auth_domains_json"
+        private const val KEY_TRACKING_PARAMS = "tracking_params_json"
+    }
+
+    fun getDomainConfigVersion(): String? {
+        return sharedPref.getString(KEY_DOMAIN_CONFIG_VERSION, null)
+    }
+
+    fun getServiceDomains(): Map<String, List<String>> {
+        val json = sharedPref.getString(KEY_SERVICE_DOMAINS, null) ?: return emptyMap()
+        val type = object : TypeToken<Map<String, List<String>>>() {}.type
+        return gson.fromJson(json, type) ?: emptyMap()
+    }
+
+    fun getAlwaysBlockedDomains(): Map<String, List<String>> {
+        val json = sharedPref.getString(KEY_ALWAYS_BLOCKED_DOMAINS, null) ?: return emptyMap()
+        val type = object : TypeToken<Map<String, List<String>>>() {}.type
+        return gson.fromJson(json, type) ?: emptyMap()
+    }
+
+    fun getCommonAuthDomains(): List<String> {
+        val json = sharedPref.getString(KEY_COMMON_AUTH_DOMAINS, null) ?: return emptyList()
+        val type = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson(json, type) ?: emptyList()
+    }
+
+    fun getTrackingParams(): List<String> {
+        val json = sharedPref.getString(KEY_TRACKING_PARAMS, null) ?: return emptyList()
+        val type = object : TypeToken<List<String>>() {}.type
+        return gson.fromJson(json, type) ?: emptyList()
+    }
+
+    fun hasDomainConfig(): Boolean {
+        return sharedPref.contains(KEY_DOMAIN_CONFIG_VERSION)
+    }
+
+    fun saveDomainConfig(
+        version: String,
+        serviceDomains: Map<String, List<String>>,
+        alwaysBlockedDomains: Map<String, List<String>>,
+        commonAuthDomains: List<String>,
+        trackingParams: List<String>
+    ) {
+        sharedPref.edit {
+            putString(KEY_DOMAIN_CONFIG_VERSION, version)
+            putString(KEY_SERVICE_DOMAINS, gson.toJson(serviceDomains))
+            putString(KEY_ALWAYS_BLOCKED_DOMAINS, gson.toJson(alwaysBlockedDomains))
+            putString(KEY_COMMON_AUTH_DOMAINS, gson.toJson(commonAuthDomains))
+            putString(KEY_TRACKING_PARAMS, gson.toJson(trackingParams))
+        }
+        Log.i("SettingsManager", "Domain config saved - version: $version")
+    }
+
     fun cleanupAndFixServices() {
         val currentServices = aiServices.map { it.id }.toSet()
 
@@ -34,10 +91,14 @@ class SettingsManager(context: Context) {
             val removedFromOrder = settings.serviceOrder.filter { it !in currentServices }
 
             if (removedFromEnabled.isNotEmpty() || removedFromOrder.isNotEmpty()) {
-                Log.d("AI_HUB", "Cleaning removed services - enabled: ${removedFromEnabled.size}, order: ${removedFromOrder.size}")
+                Log.d(
+                    "AI_HUB",
+                    "Cleaning removed services - enabled: ${removedFromEnabled.size}, order: ${removedFromOrder.size}"
+                )
             }
 
-            val newEnabled = settings.enabledServices.filter { it in currentServices }.toMutableSet()
+            val newEnabled =
+                settings.enabledServices.filter { it in currentServices }.toMutableSet()
             val existingOrder = settings.serviceOrder.filter { it in currentServices }
             val newServices = currentServices.filter { it !in existingOrder }
             val newOrder = (existingOrder + newServices).toMutableList()
@@ -48,12 +109,19 @@ class SettingsManager(context: Context) {
             settings.serviceOrder = newOrder
 
             if (settings.defaultServiceId !in currentServices) {
-                val newDefault = newEnabled.firstOrNull() ?: currentServices.firstOrNull() ?: "chatgpt"
-                Log.w("AI_HUB", "Default changed from '${settings.defaultServiceId}' to '$newDefault'")
+                val newDefault =
+                    newEnabled.firstOrNull() ?: currentServices.firstOrNull() ?: "chatgpt"
+                Log.w(
+                    "AI_HUB",
+                    "Default changed from '${settings.defaultServiceId}' to '$newDefault'"
+                )
                 settings.defaultServiceId = newDefault
             }
 
-            Log.d("AI_HUB", "Completed - enabled: ${settings.enabledServices.size}, order: ${settings.serviceOrder.size}, default: ${settings.defaultServiceId}")
+            Log.d(
+                "AI_HUB",
+                "Completed - enabled: ${settings.enabledServices.size}, order: ${settings.serviceOrder.size}, default: ${settings.defaultServiceId}"
+            )
         }
     }
 
@@ -70,6 +138,7 @@ class SettingsManager(context: Context) {
             loadLastOpenedAI = sharedPref.getBoolean("loadLastOpenedAI", true),
             fontSize = sharedPref.getString("fontSize", "medium") ?: "medium",
             defaultServiceId = sharedPref.getString("defaultServiceId", "chatgpt") ?: "chatgpt",
+            maxKeepAlive = sharedPref.getInt("maxKeepAlive", 5),
             enabledServices = loadEnabledServices(),
             serviceOrder = loadServiceOrder()
         )
@@ -81,6 +150,7 @@ class SettingsManager(context: Context) {
             putBoolean("loadLastOpenedAI", settings.loadLastOpenedAI)
             putString("fontSize", settings.fontSize)
             putString("defaultServiceId", settings.defaultServiceId)
+            putInt("maxKeepAlive", settings.maxKeepAlive)
             saveEnabledServices(settings.enabledServices)
             saveServiceOrder(settings.serviceOrder)
         }

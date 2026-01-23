@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.foss.aihub.ui.screens.AiHubApp
 import com.foss.aihub.ui.theme.AiHubTheme
+import com.foss.aihub.ui.webview.WebViewSecurity
 import com.foss.aihub.utils.SettingsManager
 
 class MainActivity : ComponentActivity() {
@@ -81,6 +82,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WebViewSecurity.init(this)
 
         Log.d("AI_HUB", "onCreate started")
         enableEdgeToEdge()
@@ -105,7 +107,6 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .background(colorScheme.background)
                     ) {
-                        Log.d("AI_HUB", "Rendering AiHubApp")
                         AiHubApp(this@MainActivity)
                     }
                 }

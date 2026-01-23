@@ -1,25 +1,35 @@
 package com.foss.aihub.ui.screens
 
 import android.annotation.SuppressLint
-import android.os.Build
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -27,14 +37,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -51,12 +67,13 @@ import com.foss.aihub.ui.screens.dialogs.MD3LinkOptionsDialog
 import com.foss.aihub.ui.webview.WebViewSecurity
 import com.foss.aihub.ui.webview.createWebViewForService
 import com.foss.aihub.ui.webview.updateWebViewSettings
+import com.foss.aihub.utils.DomainConfigUpdater
 import com.foss.aihub.utils.aiServices
 import com.foss.aihub.utils.copyLinkToClipboard
 import com.foss.aihub.utils.openInExternalBrowser
 import com.foss.aihub.utils.shareLink
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 import kotlin.system.exitProcess
 
 @SuppressLint("UnrememberedMutableState")
@@ -69,13 +86,34 @@ fun AiHubApp(activity: MainActivity) {
     val settingsManager = remember { activity.settingsManager }
     val settings by settingsManager.settingsFlow.collectAsState()
 
+    var isDomainLoading by remember { mutableStateOf(true) }
+    var isInitialLoadDone by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        Log.d("AI_HUB", "Checking domain configuration...")
+        if (!settingsManager.hasDomainConfig()) {
+            DomainConfigUpdater.updateIfNeeded(context)
+        }
+        isDomainLoading = false
+        Log.d("AI_HUB", "Domain configuration loaded")
+    }
+
     var showLinkDialog by remember { mutableStateOf(false) }
     var selectedLink by remember { mutableStateOf<LinkData?>(null) }
     var previousEnabledServices by remember { mutableStateOf(settings.enabledServices) }
 
-    val loadingProgress = remember { mutableStateMapOf<String, Int>() }
-    val webViewStates = remember { mutableStateMapOf<String, WebViewState>() }
-    val errorStates = remember { mutableStateMapOf<String, Pair<Int, String>>() }
+    data class ServiceUiState(
+        val webViewState: WebViewState = WebViewState.LOADING,
+        val isLoading: Boolean = true,
+        val progress: Int = 0,
+        val error: Pair<Int, String>? = null,
+        val isVisible: Boolean = false
+    )
+
+    val serviceStates = remember { mutableStateMapOf<String, ServiceUiState>() }
+    val webViews = remember { mutableStateMapOf<String, WebView>() }
+    val loadedServices = remember { mutableStateSetOf<String>() }
+    val serviceAccessOrder = remember { mutableListOf<String>() }
 
     val initialId = if (settings.loadLastOpenedAI) {
         settingsManager.getLastOpenedService() ?: settings.defaultServiceId
@@ -87,15 +125,13 @@ fun AiHubApp(activity: MainActivity) {
         mutableStateOf(aiServices.find { it.id == initialId } ?: aiServices.first())
     }
 
+    val currentState by derivedStateOf {
+        serviceStates[selectedService.id] ?: ServiceUiState()
+    }
 
     val hasCurrentError by derivedStateOf {
-        errorStates.containsKey(selectedService.id) && errorStates[selectedService.id]?.let {
-            ErrorType.shouldShowOverlay(
-                it.first
-            )
-        } == true
+        currentState.error?.let { ErrorType.shouldShowOverlay(it.first) } == true
     }
-    val currentError by derivedStateOf { errorStates[selectedService.id] }
 
     var previousConnectionBlocking by remember {
         mutableStateOf(WebViewSecurity.isBlockingEnabled)
@@ -110,42 +146,64 @@ fun AiHubApp(activity: MainActivity) {
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showManageServices by remember { mutableStateOf(false) }
 
-    val webViews = remember { mutableStateMapOf<String, WebView>() }
-    val loadingStates = remember { mutableStateMapOf<String, Boolean>() }
-    val loadedServices = remember { mutableStateSetOf<String>() }
-
     var currentRoot by remember { mutableStateOf<FrameLayout?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    fun updateServiceState(serviceId: String, update: (ServiceUiState) -> ServiceUiState) {
+        val newState = update(serviceStates[serviceId] ?: ServiceUiState())
+        serviceStates[serviceId] = newState
+    }
+
+    fun reloadAllActiveTabs() {
+        webViews.forEach { (serviceId, webView) ->
+            Log.d("AI_HUB", "Reloading tab: $serviceId")
+            webView.reload()
+            updateServiceState(serviceId) { state ->
+                state.copy(
+                    webViewState = WebViewState.LOADING,
+                    isLoading = true,
+                    error = null,
+                    progress = 0
+                )
+            }
+        }
+    }
+
+    fun enforceWebViewLimit() {
+        val limit = settings.maxKeepAlive
+        if (limit == Int.MAX_VALUE) {
+            return
+        }
+
+        val servicesToKeep = serviceAccessOrder.take(limit).toSet()
+        val servicesToDestroy = webViews.keys.filterNot { it in servicesToKeep }.toMutableList()
+
+        if (selectedService.id !in servicesToKeep && webViews.containsKey(selectedService.id)) {
+            servicesToDestroy.remove(selectedService.id)
+        }
+
+        servicesToDestroy.forEach { serviceId ->
+            webViews[serviceId]?.let { webView ->
+                (webView.parent as? ViewGroup)?.removeView(webView)
+                webView.destroy()
+                webViews.remove(serviceId)
+                serviceStates.remove(serviceId)
+                loadedServices.remove(serviceId)
+                serviceAccessOrder.remove(serviceId)
+            }
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> {
-                    webViews.forEach { (_, webView) ->
-                        webView.pauseTimers()
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                            webView.onPause()
-                        }
-                    }
-                    Log.d("AI_HUB", "Paused all WebViews")
-                }
-
-                Lifecycle.Event.ON_RESUME -> {
-                    webViews.forEach { (_, webView) ->
-                        webView.resumeTimers()
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-                            webView.onResume()
-                        }
-                    }
-                    Log.d("AI_HUB", "Resumed all WebViews")
-                }
-
                 Lifecycle.Event.ON_DESTROY -> {
                     webViews.forEach { (_, webView) ->
                         webView.destroy()
                     }
                     webViews.clear()
-                    Log.d("AI_HUB", "Destroyed all WebViews")
+                    serviceAccessOrder.clear()
+                    serviceStates.clear()
                 }
 
                 else -> {}
@@ -160,28 +218,39 @@ fun AiHubApp(activity: MainActivity) {
     }
 
     LaunchedEffect(selectedService.id) {
-        Log.d("AI_HUB", "Service switched to: ${selectedService.name} (id: ${selectedService.id})")
-        val wv = webViews[selectedService.id]
-        if (wv == null) {
-            Log.d("AI_HUB", "No WebView yet for ${selectedService.name} → will create")
-            webViewStates[selectedService.id] = WebViewState.LOADING
+        serviceAccessOrder.remove(selectedService.id)
+        serviceAccessOrder.add(0, selectedService.id)
 
-            errorStates.remove(selectedService.id)
-        } else {
-            Log.d("AI_HUB", "Reusing existing WebView for ${selectedService.name}")
-            if (wv.parent == null && currentRoot != null) {
-                currentRoot?.addView(wv)
-            }
-            wv.visibility = View.VISIBLE
-
-            webViewStates[selectedService.id] = if (loadingStates[selectedService.id] == true) {
-                WebViewState.LOADING
-            } else {
-                val hasError = errorStates.containsKey(selectedService.id)
-                if (hasError) WebViewState.ERROR else WebViewState.SUCCESS
-            }
+        updateServiceState(selectedService.id) { state ->
+            state.copy(
+                webViewState = WebViewState.LOADING, error = null
+            )
         }
+
+        val wv = webViews[selectedService.id]
+        if (wv != null) {
+            val isActuallyLoading = wv.progress < 100
+
+            updateServiceState(selectedService.id) { state ->
+                state.copy(
+                    isLoading = isActuallyLoading,
+                    webViewState = if (isActuallyLoading) WebViewState.LOADING else WebViewState.SUCCESS,
+                    progress = wv.progress
+                )
+            }
+
+            wv.bringToFront()
+        }
+
         loadedServices.add(selectedService.id)
+
+        enforceWebViewLimit()
+    }
+
+    LaunchedEffect(isDomainLoading, settings.enabledServices, isInitialLoadDone) {
+        if (!isDomainLoading && settings.enabledServices.isNotEmpty() && !isInitialLoadDone) {
+            isInitialLoadDone = true
+        }
     }
 
     ModalNavigationDrawer(
@@ -196,10 +265,16 @@ fun AiHubApp(activity: MainActivity) {
                     scope.launch { drawerState.close() }
                     webViews[service.id]?.reload()
 
-                    errorStates.remove(service.id)
-                    webViewStates[service.id] = WebViewState.LOADING
+                    updateServiceState(service.id) { state ->
+                        state.copy(
+                            webViewState = WebViewState.LOADING,
+                            isLoading = true,
+                            error = null,
+                            progress = 0
+                        )
+                    }
                 },
-                webViewStates = webViewStates,
+                webViewStates = serviceStates.mapValues { it.value.webViewState },
                 enabledServices = settings.enabledServices,
                 serviceOrder = settings.serviceOrder
             )
@@ -215,7 +290,6 @@ fun AiHubApp(activity: MainActivity) {
                     }
                 }, onSettingsClick = { showSettingsScreen = true })
             }) { innerPadding ->
-            val isCurrentLoading by derivedStateOf { loadingStates[selectedService.id] ?: false }
 
             Box(
                 modifier = Modifier
@@ -223,47 +297,119 @@ fun AiHubApp(activity: MainActivity) {
                     .padding(innerPadding)
                     .background(MaterialTheme.colorScheme.background)
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    @Suppress("COMPOSE_APPLIER_CALL_MISMATCH") AndroidView(
-                        factory = { ctx ->
-                        FrameLayout(ctx).apply {
-                            currentRoot = this
-                            webViews.values.forEach { wv ->
-                                if (wv.parent == null) {
-                                    addView(wv)
-                                    wv.visibility = View.GONE
+                if (!isDomainLoading && settings.enabledServices.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        @Suppress("COMPOSE_APPLIER_CALL_MISMATCH") AndroidView(
+                            factory = { ctx ->
+                            FrameLayout(ctx).apply {
+                                currentRoot = this
+
+                                webViews.values.forEach { wv ->
+                                    if (wv.parent == null) {
+                                        addView(wv)
+                                        wv.visibility = View.GONE
+                                    }
+                                }
+
+                                val currentService = selectedService
+                                val currentWebView = webViews[currentService.id]
+                                if (currentWebView == null) {
+                                    val newWebView = createWebViewForService(
+                                        context = context,
+                                        service = currentService,
+                                        activity = activity,
+                                        settings = settings,
+                                        onProgressUpdate = { progress ->
+                                            updateServiceState(currentService.id) { state ->
+                                                state.copy(progress = progress)
+                                            }
+                                        },
+                                        onLoadingStateChange = { isLoading ->
+                                            updateServiceState(currentService.id) { state ->
+                                                state.copy(
+                                                    isLoading = isLoading,
+                                                    webViewState = if (isLoading) WebViewState.LOADING else WebViewState.SUCCESS
+                                                )
+                                            }
+
+                                            if (isLoading) {
+                                                updateServiceState(currentService.id) { state ->
+                                                    state.copy(error = null)
+                                                }
+                                            }
+                                        },
+                                        onLinkLongPress = { url, title, type ->
+                                            selectedLink = LinkData(url, title, type)
+                                            showLinkDialog = true
+                                        },
+                                        onError = { errorCode, description ->
+                                            updateServiceState(currentService.id) { state ->
+                                                state.copy(
+                                                    error = errorCode to description,
+                                                    webViewState = WebViewState.ERROR,
+                                                    isLoading = false
+                                                )
+                                            }
+                                            webViews[currentService.id]?.visibility = View.GONE
+                                        })
+
+                                    updateWebViewSettings(newWebView, settings, false)
+                                    webViews[currentService.id] = newWebView
+                                    addView(newWebView)
+                                    newWebView.visibility = View.VISIBLE
+                                    newWebView.bringToFront()
+
+                                    updateServiceState(currentService.id) { state ->
+                                        state.copy(
+                                            webViewState = WebViewState.LOADING,
+                                            isLoading = true,
+                                            progress = 0
+                                        )
+                                    }
+
+                                    newWebView.loadUrl(currentService.url)
+                                } else {
+                                    if (currentWebView.parent == null) {
+                                        addView(currentWebView)
+                                    }
+                                    currentWebView.bringToFront()
+
+                                    val shouldBeVisible =
+                                        serviceStates[currentService.id]?.error == null
+                                    currentWebView.visibility =
+                                        if (shouldBeVisible) View.VISIBLE else View.GONE
+
+                                    if (currentWebView.url.isNullOrEmpty() || currentWebView.url == "about:blank") {
+                                        currentWebView.loadUrl(currentService.url)
+                                    }
                                 }
                             }
-                            val currentWebView = webViews[selectedService.id]
-                            if (currentWebView == null) {
+                        }, update = { root ->
+                            currentRoot = root
+
+                            val currentService = selectedService
+                            if (webViews[currentService.id] == null) {
                                 val newWebView = createWebViewForService(
-                                    context = context,
-                                    service = selectedService,
+                                    context = root.context,
+                                    service = currentService,
                                     activity = activity,
                                     settings = settings,
                                     onProgressUpdate = { progress ->
-                                        loadingProgress[selectedService.id] = progress
+                                        updateServiceState(currentService.id) { state ->
+                                            state.copy(progress = progress)
+                                        }
                                     },
                                     onLoadingStateChange = { isLoading ->
-                                        loadingStates[selectedService.id] = isLoading
-                                        if (isLoading) {
-                                            webViewStates[selectedService.id] = WebViewState.LOADING
-
-                                            errorStates.remove(selectedService.id)
-                                        } else {
-
-                                            if (!errorStates.containsKey(selectedService.id)) {
-                                                webViewStates[selectedService.id] =
-                                                    WebViewState.SUCCESS
-                                            }
-                                        }
-                                        if (!isLoading && loadingProgress.containsKey(
-                                                selectedService.id
+                                        updateServiceState(currentService.id) { state ->
+                                            state.copy(
+                                                isLoading = isLoading,
+                                                webViewState = if (isLoading) WebViewState.LOADING else WebViewState.SUCCESS
                                             )
-                                        ) {
-                                            scope.launch {
-                                                delay(500)
-                                                loadingProgress.remove(selectedService.id)
+                                        }
+
+                                        if (isLoading) {
+                                            updateServiceState(currentService.id) { state ->
+                                                state.copy(error = null)
                                             }
                                         }
                                     },
@@ -272,132 +418,171 @@ fun AiHubApp(activity: MainActivity) {
                                         showLinkDialog = true
                                     },
                                     onError = { errorCode, description ->
-                                        errorStates[selectedService.id] = errorCode to description
-                                        webViewStates[selectedService.id] = WebViewState.ERROR
-                                        webViews[selectedService.id]?.visibility = View.GONE
+                                        updateServiceState(currentService.id) { state ->
+                                            state.copy(
+                                                error = errorCode to description,
+                                                webViewState = WebViewState.ERROR,
+                                                isLoading = false
+                                            )
+                                        }
+                                        webViews[currentService.id]?.visibility = View.GONE
                                     })
-                                webViews[selectedService.id] = newWebView
-                                addView(newWebView)
 
+                                updateWebViewSettings(newWebView, settings, false)
+                                webViews[currentService.id] = newWebView
+                                root.addView(newWebView)
                                 newWebView.visibility = View.VISIBLE
-                                webViewStates[selectedService.id] = WebViewState.LOADING
-                            } else {
-                                if (currentWebView.parent == null) addView(currentWebView)
+                                newWebView.bringToFront()
 
-                                currentWebView.visibility =
-                                    if (errorStates.containsKey(selectedService.id)) {
-                                        View.GONE
-                                    } else {
-                                        View.VISIBLE
-                                    }
-                            }
-                        }
-                    }, update = { root ->
-                        currentRoot = root
-                        webViews.forEach { (id, wv) ->
-                            if (wv.parent == root) {
+                                updateServiceState(currentService.id) { state ->
+                                    state.copy(
+                                        webViewState = WebViewState.LOADING,
+                                        isLoading = true,
+                                        progress = 0
+                                    )
+                                }
+
+                                newWebView.loadUrl(currentService.url)
+                            } else {
+                                val currentWebView = webViews[currentService.id]!!
+                                if (currentWebView.parent == null) {
+                                    root.addView(currentWebView)
+                                }
+
                                 val shouldBeVisible =
-                                    id == selectedService.id && !errorStates.containsKey(id)
-                                wv.visibility = if (shouldBeVisible) View.VISIBLE else View.GONE
-                            } else if (id == selectedService.id && wv.parent == null) {
-                                root.addView(wv)
-                                wv.visibility = if (errorStates.containsKey(id)) {
-                                    View.GONE
-                                } else {
-                                    View.VISIBLE
+                                    serviceStates[currentService.id]?.error == null
+                                currentWebView.visibility =
+                                    if (shouldBeVisible) View.VISIBLE else View.GONE
+                                currentWebView.bringToFront()
+
+                                if (currentWebView.url.isNullOrEmpty() || currentWebView.url == "about:blank") {
+                                    currentWebView.loadUrl(currentService.url)
                                 }
                             }
-                        }
-                        if (webViews[selectedService.id] == null) {
-                            val newWebView = createWebViewForService(
-                                context = root.context,
-                                service = selectedService,
-                                activity = activity,
-                                settings = settings,
-                                onProgressUpdate = { progress ->
-                                    loadingProgress[selectedService.id] = progress
-                                },
-                                onLoadingStateChange = { isLoading ->
-                                    loadingStates[selectedService.id] = isLoading
-                                    if (isLoading) {
-                                        webViewStates[selectedService.id] = WebViewState.LOADING
-                                        errorStates.remove(selectedService.id)
-                                    } else {
+                        }, modifier = Modifier.fillMaxSize()
+                        )
 
-                                        if (!errorStates.containsKey(selectedService.id)) {
-                                            webViewStates[selectedService.id] = WebViewState.SUCCESS
-                                        }
-                                    }
-                                    if (!isLoading && loadingProgress.containsKey(
-                                            selectedService.id
+                        if (currentState.isLoading && !hasCurrentError) {
+                            LoadingOverlay(
+                                isVisible = true,
+                                isRefreshing = false,
+                                serviceName = selectedService.name,
+                                accentColor = selectedService.accentColor,
+                                progress = currentState.progress,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        if (hasCurrentError && currentState.error != null) {
+                            val (errorCode, errorMessage) = currentState.error!!
+                            ErrorOverlay(
+                                errorType = ErrorType.fromErrorCode(errorCode),
+                                errorCode = errorCode,
+                                errorMessage = errorMessage,
+                                serviceName = selectedService.name,
+                                accentColor = selectedService.accentColor,
+                                onRetry = {
+                                    updateServiceState(selectedService.id) { state ->
+                                        state.copy(
+                                            error = null,
+                                            webViewState = WebViewState.LOADING,
+                                            isLoading = true,
+                                            progress = 0
                                         )
-                                    ) {
-                                        scope.launch {
-                                            delay(500)
-                                            loadingProgress.remove(selectedService.id)
-                                        }
                                     }
+                                    webViews[selectedService.id]?.reload()
                                 },
-                                onLinkLongPress = { url, title, type ->
-                                    selectedLink = LinkData(url, title, type)
-                                    showLinkDialog = true
-                                },
-                                onError = { errorCode, description ->
-                                    errorStates[selectedService.id] = errorCode to description
-                                    webViewStates[selectedService.id] = WebViewState.ERROR
-                                    webViews[selectedService.id]?.visibility = View.GONE
-                                })
-                            webViews[selectedService.id] = newWebView
-                            root.addView(newWebView)
-                            newWebView.visibility = View.VISIBLE
-                            webViewStates[selectedService.id] = WebViewState.LOADING
+                                modifier = Modifier.fillMaxSize()
+                            )
                         }
-                    }, modifier = Modifier.fillMaxSize()
-                    )
-
-                    if (isCurrentLoading && !hasCurrentError) {
-                        LoadingOverlay(
-                            isVisible = true,
-                            isRefreshing = false,
-                            serviceName = selectedService.name,
-                            accentColor = selectedService.accentColor,
-                            progress = loadingProgress[selectedService.id] ?: 0,
-                            modifier = Modifier.fillMaxSize()
-                        )
                     }
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(56.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 4.dp,
+                                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            )
 
-                    if (hasCurrentError && currentError != null) {
-                        val (errorCode, errorMessage) = currentError!!
-                        ErrorOverlay(
-                            errorType = ErrorType.fromErrorCode(errorCode),
-                            errorCode = errorCode,
-                            errorMessage = errorMessage,
-                            serviceName = selectedService.name,
-                            accentColor = selectedService.accentColor,
-                            onRetry = {
-                                errorStates.remove(selectedService.id)
-                                webViews[selectedService.id]?.reload()
-                                webViewStates[selectedService.id] = WebViewState.LOADING
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            Text(
+                                text = "AI Hub",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "Preparing your AI assistants",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Loading security rules...",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.alpha(0.8f)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            AssistChip(
+                                onClick = {}, label = {
+                                Text(
+                                    text = "This only happens once",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }, colors = AssistChipDefaults.assistChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                    alpha = 0.5f
+                                ), labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ), modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-
     BackHandler(enabled = !showSettingsScreen && !showManageServices) {
         when {
             drawerState.isOpen -> scope.launch { drawerState.close() }
             hasCurrentError -> {
-                errorStates.remove(selectedService.id)
+                updateServiceState(selectedService.id) { state ->
+                    state.copy(error = null)
+                }
                 if (webViews[selectedService.id]?.canGoBack() == true) {
                     webViews[selectedService.id]?.goBack()
                 } else {
                     webViews[selectedService.id]?.visibility = View.VISIBLE
-                    webViewStates[selectedService.id] = WebViewState.SUCCESS
+                    updateServiceState(selectedService.id) { state ->
+                        state.copy(webViewState = WebViewState.SUCCESS)
+                    }
                 }
             }
 
@@ -408,7 +593,6 @@ fun AiHubApp(activity: MainActivity) {
             else -> exitProcess(0)
         }
     }
-
 
     if (showLinkDialog) {
         selectedLink?.let { linkData ->
@@ -430,7 +614,6 @@ fun AiHubApp(activity: MainActivity) {
         }
     }
 
-
     var previousSettings by remember { mutableStateOf(settings) }
 
     val applySettingsToAllWebViews: (Boolean) -> Unit = { reload ->
@@ -440,11 +623,14 @@ fun AiHubApp(activity: MainActivity) {
         previousSettings = settings
     }
 
+    var previousMaxKeepAlive by remember { mutableIntStateOf(settings.maxKeepAlive) }
+
     LaunchedEffect(settings, WebViewSecurity.isBlockingEnabled) {
         val connectionBlockingChanged =
             WebViewSecurity.isBlockingEnabled != previousConnectionBlocking
+        val limitChanged = settings.maxKeepAlive != previousMaxKeepAlive
 
-        if (settings != previousSettings || connectionBlockingChanged) {
+        if (settings != previousSettings || connectionBlockingChanged || limitChanged) {
             val relevantChanges = listOf(
                 settings.enableZoom != previousSettings.enableZoom,
                 settings.fontSize != previousSettings.fontSize,
@@ -456,6 +642,11 @@ fun AiHubApp(activity: MainActivity) {
                 }
             }
 
+            if (limitChanged) {
+                enforceWebViewLimit()
+                previousMaxKeepAlive = settings.maxKeepAlive
+            }
+
             previousSettings = settings
             previousConnectionBlocking = WebViewSecurity.isBlockingEnabled
         }
@@ -463,17 +654,14 @@ fun AiHubApp(activity: MainActivity) {
 
     LaunchedEffect(showSettingsScreen) {
         if (!showSettingsScreen) {
+            enforceWebViewLimit()
+
             val currentEnabled = settings.enabledServices
 
             val disabledServices = previousEnabledServices.filter { it !in currentEnabled }
             val enabledServices = currentEnabled.filter { it !in previousEnabledServices }
 
             if (disabledServices.isNotEmpty() || enabledServices.isNotEmpty()) {
-                Log.d(
-                    "AI_HUB",
-                    "Enabled services changed: disabled=${disabledServices.size}, enabled=${enabledServices.size}"
-                )
-
                 if (selectedService.id !in currentEnabled) {
                     val firstEnabled = aiServices.firstOrNull { it.id in currentEnabled }
                         ?: aiServices.firstOrNull { it.id == settings.defaultServiceId }
@@ -488,22 +676,16 @@ fun AiHubApp(activity: MainActivity) {
                         (webView.parent as? ViewGroup)?.removeView(webView)
                         webView.destroy()
                         toRemove.add(id)
+
+                        serviceAccessOrder.remove(id)
                     }
                 }
 
                 toRemove.forEach { id ->
                     webViews.remove(id)
-                    webViewStates.remove(id)
-                    errorStates.remove(id)
-                    loadingStates.remove(id)
-                    loadingProgress.remove(id)
+                    serviceStates.remove(id)
                     loadedServices.remove(id)
                 }
-
-                Log.d(
-                    "AI_HUB",
-                    "Cleaned up ${toRemove.size} disabled services after returning from settings"
-                )
 
                 previousEnabledServices = currentEnabled
             }
@@ -519,15 +701,67 @@ fun AiHubApp(activity: MainActivity) {
         }
 
         SettingsScreen(
-            onBack = { showSettingsScreen = false; applySettingsToAllWebViews(false) },
+            onBack = {
+            showSettingsScreen = false
+            applySettingsToAllWebViews(false)
+            enforceWebViewLimit()
+        },
             settingsManager = settingsManager,
-            onManageServicesClick = { showManageServices = true })
+            onManageServicesClick = { showManageServices = true },
+            onClearCache = {
+                try {
+                    context.cacheDir?.deleteRecursively()
+
+                    val webViewCacheDir = File(context.cacheDir, "webviewCache")
+                    webViewCacheDir.deleteRecursively()
+
+                    val webViewDatabaseDir = File(context.filesDir, "webview")
+                    webViewDatabaseDir.deleteRecursively()
+
+                    WebView(context).apply {
+                        clearCache(true)
+                        clearHistory()
+                        destroy()
+                    }
+                } catch (e: Exception) {
+                    Log.e("AI_HUB", "Error clearing cache", e)
+                }
+
+                Toast.makeText(context, "Cache cleared", Toast.LENGTH_SHORT).show()
+            },
+            onClearData = {
+                webViews.forEach { (serviceId, webView) ->
+                    webView.clearCache(true)
+                    webView.clearHistory()
+                    webView.clearFormData()
+
+                    updateServiceState(serviceId) { state ->
+                        state.copy(
+                            error = null, isLoading = false, progress = 0
+                        )
+                    }
+                }
+
+                val cookieManager = android.webkit.CookieManager.getInstance()
+
+                cookieManager.removeAllCookies { _ ->
+                    cookieManager.flush()
+
+                    scope.launch {
+                        reloadAllActiveTabs()
+                        Toast.makeText(context, "All data cleared", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            })
     }
 
     if (showManageServices) {
         BackHandler { showManageServices = false }
         ManageAiServicesScreen(
-            onBack = { showManageServices = false },
+            onBack = {
+            showManageServices = false
+            enforceWebViewLimit()
+        },
             enabledServices = settings.enabledServices,
             onEnabledServicesChange = { newSet ->
                 settingsManager.updateSettings { it.enabledServices = newSet }

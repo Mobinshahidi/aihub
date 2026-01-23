@@ -53,7 +53,7 @@ fun createWebViewForService(
             when (result.type) {
                 WebView.HitTestResult.SRC_ANCHOR_TYPE -> {
                     var url = result.extra ?: return@setOnLongClickListener false
-                    url = cleanTrackingParams(url)
+                    url = cleanTrackingParams(context, url)
                     val title = extractLinkTitle(url)
                     onLinkLongPress(url, title, LinkType.HYPERLINK)
                     true

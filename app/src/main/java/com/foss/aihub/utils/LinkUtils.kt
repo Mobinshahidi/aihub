@@ -39,14 +39,15 @@ fun shareLink(context: Context, url: String, title: String) {
         })
 }
 
-fun cleanTrackingParams(url: String): String {
+fun cleanTrackingParams(context: Context, url: String): String {
     return try {
         val uri = url.toUri()
         val builder = uri.buildUpon()
         builder.clearQuery()
+        val settings = SettingsManager(context)
 
         uri.queryParameterNames.forEach { param ->
-            if (!TRACKING_PARAMS.contains(param.lowercase())) {
+            if (!settings.getTrackingParams().contains(param.lowercase())) {
                 val values = uri.getQueryParameters(param)
                 values.forEach { value ->
                     builder.appendQueryParameter(param, value)
