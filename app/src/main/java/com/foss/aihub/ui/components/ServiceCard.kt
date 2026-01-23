@@ -52,28 +52,21 @@ fun Md3ServiceCard(
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val typography = MaterialTheme.typography
 
     Card(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(72.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
-                state == WebViewState.ERROR -> serviceColor.copy(alpha = 0.04f)
-                isSelected -> serviceColor.copy(alpha = 0.08f)
-                else -> colorScheme.surfaceContainer
+                state == WebViewState.ERROR -> colorScheme.errorContainer.copy(alpha = 0.12f)
+                isSelected -> serviceColor.copy(alpha = 0.10f)
+                else -> colorScheme.surfaceContainerLowest
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = when {
-            state == WebViewState.ERROR -> BorderStroke(
-                1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-            )
-
-            isSelected -> BorderStroke(1.dp, serviceColor.copy(alpha = 0.24f))
+            state == WebViewState.ERROR -> BorderStroke(1.dp, colorScheme.error.copy(alpha = 0.28f))
+            isSelected -> BorderStroke(1.5.dp, serviceColor.copy(alpha = 0.30f))
             else -> null
         }
     ) {
@@ -82,7 +75,7 @@ fun Md3ServiceCard(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             CompactLeadingIconWithState(
                 service = service,
@@ -92,7 +85,7 @@ fun Md3ServiceCard(
             )
 
             Column(
-                modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)
+                modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -101,10 +94,10 @@ fun Md3ServiceCard(
                 ) {
                     Text(
                         text = service.name,
-                        style = typography.titleSmall,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                         color = when {
-                            state == WebViewState.ERROR -> MaterialTheme.colorScheme.error
+                            state == WebViewState.ERROR -> colorScheme.error
                             isSelected -> serviceColor
                             else -> colorScheme.onSurface
                         },
@@ -112,9 +105,7 @@ fun Md3ServiceCard(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    CompactStatusIndicator(
-                        state = state, serviceColor = serviceColor
-                    )
+                    CompactStatusIndicator(state = state, serviceColor = serviceColor)
                 }
 
                 Row(
@@ -129,10 +120,10 @@ fun Md3ServiceCard(
                                 WebViewState.SUCCESS -> "Ready"
                                 else -> ""
                             },
-                            style = typography.labelSmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = when (state) {
                                 WebViewState.LOADING -> colorScheme.onSurfaceVariant
-                                WebViewState.ERROR -> MaterialTheme.colorScheme.error
+                                WebViewState.ERROR -> colorScheme.error
                                 WebViewState.SUCCESS -> serviceColor
                                 else -> colorScheme.onSurfaceVariant
                             },
@@ -142,29 +133,29 @@ fun Md3ServiceCard(
                         )
                     } else {
                         Surface(
-                            color = serviceColor.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(50),
-                            border = BorderStroke(0.5.dp, serviceColor.copy(alpha = 0.24f)),
-                            modifier = Modifier.height(18.dp)
+                            color = serviceColor.copy(alpha = 0.09f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(0.8.dp, serviceColor.copy(alpha = 0.25f)),
+                            modifier = Modifier.height(22.dp)
                         ) {
                             Text(
                                 text = service.category,
-                                style = typography.labelSmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = serviceColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                             )
                         }
 
                         Text(
                             text = "•",
-                            style = typography.bodySmall,
-                            color = colorScheme.outline.copy(alpha = 0.6f)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colorScheme.outline.copy(alpha = 0.5f)
                         )
 
                         Text(
                             text = service.description,
-                            style = typography.bodySmall,
+                            style = MaterialTheme.typography.bodySmall,
                             color = colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -177,51 +168,43 @@ fun Md3ServiceCard(
     }
 }
 
+
 @Composable
 private fun CompactLeadingIconWithState(
-    service: AiService,
-    serviceColor: Color,
-    isSelected: Boolean,
-    state: WebViewState,
-    modifier: Modifier = Modifier
+    service: AiService, serviceColor: Color, isSelected: Boolean, state: WebViewState
 ) {
-    Box(
-        modifier = modifier.size(36.dp), contentAlignment = Alignment.Center
+    Surface(
+        shape = CircleShape, color = when {
+            state == WebViewState.ERROR -> MaterialTheme.colorScheme.errorContainer
+            isSelected -> serviceColor.copy(alpha = 0.14f)
+            else -> Color.Transparent
+        }, border = BorderStroke(
+            width = if (isSelected || state == WebViewState.ERROR) 1.5.dp else 0.8.dp,
+            color = when {
+                state == WebViewState.ERROR -> MaterialTheme.colorScheme.error.copy(alpha = 0.35f)
+                isSelected -> serviceColor.copy(alpha = 0.35f)
+                else -> serviceColor.copy(alpha = 0.18f)
+            }
+        ), tonalElevation = if (isSelected) 6.dp else 0.dp, modifier = Modifier.size(48.dp)
     ) {
-        Surface(
-            shape = CircleShape, color = when {
-                state == WebViewState.ERROR -> MaterialTheme.colorScheme.errorContainer
-                isSelected -> serviceColor.copy(alpha = 0.12f)
-                else -> Color.Transparent
-            }, border = BorderStroke(
-                width = when {
-                    state == WebViewState.ERROR -> 1.5.dp
-                    isSelected -> 1.5.dp
-                    else -> 0.5.dp
-                }, color = when {
-                    state == WebViewState.ERROR -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                    isSelected -> serviceColor.copy(alpha = 0.32f)
-                    else -> serviceColor.copy(alpha = 0.12f)
-                }
-            ), modifier = Modifier.size(32.dp)
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             when (state) {
                 WebViewState.LOADING -> LoadingSpinner(
-                    color = serviceColor, modifier = Modifier.size(18.dp)
+                    color = serviceColor, modifier = Modifier.size(24.dp)
                 )
 
                 WebViewState.ERROR -> Icon(
-                    imageVector = Icons.Rounded.Error,
+                    Icons.Rounded.Error,
                     contentDescription = "Error",
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(24.dp)
                 )
 
                 else -> Icon(
                     imageVector = serviceIcons[service.id] ?: Icons.Rounded.SmartToy,
                     contentDescription = null,
-                    tint = if (isSelected) serviceColor else serviceColor.copy(alpha = 0.74f),
-                    modifier = Modifier.size(18.dp)
+                    tint = if (isSelected) serviceColor else serviceColor.copy(alpha = 0.8f),
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
@@ -232,14 +215,13 @@ private fun CompactLeadingIconWithState(
 private fun LoadingSpinner(
     color: Color, modifier: Modifier = Modifier
 ) {
-    val animatedRotation = remember { Animatable(0f) }
+    val rotation = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        animatedRotation.animateTo(
+        rotation.animateTo(
             targetValue = 360f, animationSpec = infiniteRepeatable(
-                animation = tween(
-                    durationMillis = 1000, easing = androidx.compose.animation.core.LinearEasing
-                ), repeatMode = RepeatMode.Restart
+                animation = tween(900, easing = androidx.compose.animation.core.LinearEasing),
+                repeatMode = RepeatMode.Restart
             )
         )
     }
@@ -248,43 +230,35 @@ private fun LoadingSpinner(
         imageVector = Icons.Rounded.Refresh,
         contentDescription = "Loading",
         tint = color,
-        modifier = modifier.rotate(animatedRotation.value)
+        modifier = modifier.rotate(rotation.value)
     )
 }
 
 @Composable
 private fun CompactStatusIndicator(
-    state: WebViewState, serviceColor: Color, modifier: Modifier = Modifier
+    state: WebViewState, serviceColor: Color
 ) {
-    Box(
-        modifier = modifier.size(20.dp), contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
         when (state) {
             WebViewState.SUCCESS -> Icon(
-                imageVector = Icons.Rounded.CheckCircle,
-                contentDescription = "Service loaded",
+                Icons.Rounded.CheckCircle,
+                contentDescription = "Loaded",
                 tint = serviceColor,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(20.dp)
             )
 
             WebViewState.ERROR -> Icon(
-                imageVector = Icons.Rounded.Error,
+                Icons.Rounded.Error,
                 contentDescription = "Error",
                 tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(18.dp)
             )
 
-            WebViewState.LOADING -> Box(
-                modifier = Modifier.size(12.dp), contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp, color = serviceColor, modifier = Modifier.size(10.dp)
-                )
-            }
+            WebViewState.LOADING -> CircularProgressIndicator(
+                strokeWidth = 2.5.dp, color = serviceColor, modifier = Modifier.size(18.dp)
+            )
 
-            else -> {
-                // Nothing
-            }
+            else -> {}
         }
     }
 }
