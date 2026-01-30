@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="fastlane/metadata/android/en-US/images/icon.png" width="128" alt="">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="128" alt="App Icon">
   <h1>AI Hub</h1>
   <p><strong>All your AI assistants, beautifully together.</strong><br>Privacy-first, open-source, and completely customizable.</p>
 </div>
