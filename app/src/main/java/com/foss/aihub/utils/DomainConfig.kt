@@ -10,3 +10,9 @@ data class RemoteDomainConfig(
     val common_auth_domains: List<String>,
     val tracking_params: List<String>
 )
+
+
+@Serializable
+data class AiServiceConfig(
+    val version: String, val ai_services: List<List<String>>
+)
