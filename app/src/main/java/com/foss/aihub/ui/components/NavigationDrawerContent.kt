@@ -67,7 +67,7 @@ fun DrawerContent(
 ) {
     val colorScheme = MaterialTheme.colorScheme
 
-    val orderedEnabledServices = remember(enabledServices, serviceOrder) {
+    val orderedEnabledServices = remember(enabledServices, serviceOrder, aiServices.toList()) {
         serviceOrder.filter { it in enabledServices }
             .mapNotNull { id -> aiServices.find { it.id == id } }
     }

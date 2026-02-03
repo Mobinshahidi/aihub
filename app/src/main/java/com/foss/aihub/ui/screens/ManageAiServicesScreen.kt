@@ -1,8 +1,8 @@
 package com.foss.aihub.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,18 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.ArrowDropUp
-import androidx.compose.material.icons.rounded.SmartToy
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,7 +43,6 @@ import com.foss.aihub.models.AiService
 import com.foss.aihub.ui.components.Md3TopAppBar
 import com.foss.aihub.utils.SettingsManager
 import com.foss.aihub.utils.aiServices
-import com.foss.aihub.utils.serviceIcons
 import java.util.Collections
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +56,7 @@ fun ManageAiServicesScreen(
     settingsManager: SettingsManager
 ) {
     val settings by settingsManager.settingsFlow.collectAsState()
-    val orderedServices = remember(settings) {
+    val orderedServices = remember(settings, aiServices.toList()) {
         settings.serviceOrder.mapNotNull { id -> aiServices.find { it.id == id } }
     }
 
@@ -70,17 +65,15 @@ fun ManageAiServicesScreen(
         topBar = { Md3TopAppBar(title = "Manage AI Services", onBack = onBack) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(
                 items = orderedServices, key = { _, service -> service.id }) { index, service ->
-
                 val isEnabled = service.id in enabledServices
                 val isDefault = service.id == defaultServiceId
                 val isOnlyEnabled = enabledServices.size == 1 && isEnabled
@@ -123,29 +116,29 @@ fun ManageAiServicesScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    shape = RoundedCornerShape(20.dp),
+                        .padding(horizontal = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    tonalElevation = 1.dp
+                    tonalElevation = 0.5.dp
                 ) {
                     Text(
                         text = when {
-                            loadLastAiEnabled -> "At least one AI assistant must remain enabled"
-                            else -> "At least one AI assistant must remain enabled • The default cannot be disabled"
+                            loadLastAiEnabled -> "At least one AI must remain enabled"
+                            else -> "At least one AI must be enabled • Default cannot be disabled"
                         },
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier.padding(12.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
@@ -164,67 +157,94 @@ fun AiServiceItem(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit
 ) {
-    val accent = service.accentColor
+    Surface(
+        onClick = { if (canToggle || !isEnabled) onToggle(!isEnabled) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = when {
+            isEnabled -> service.accentColor.copy(alpha = 0.08f)
+            else -> MaterialTheme.colorScheme.surfaceContainerLowest
+        },
+        border = when {
+            !isEnabled -> BorderStroke(
+                0.8.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
 
-    Card(
-        modifier = Modifier.fillMaxWidth(
-        ), shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(
-            containerColor = if (isEnabled) accent.copy(alpha = 0.08f)
-            else MaterialTheme.colorScheme.surfaceContainerLowest
-        ), border = if (!isEnabled) BorderStroke(
-            1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        )
-        else null
+            else -> null
+        },
+        tonalElevation = if (isEnabled) 1.dp else 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CompactServiceIcon(service, isEnabled)
-
             Column(
-                modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = service.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (isEnabled) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (isEnabled) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
 
                     if (isDefault && !loadLastAiEnabled) {
-                        DefaultBadge()
+                        DefaultBadgeCompact()
                     }
                 }
 
-                Text(
-                    text = service.category,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isEnabled) 0.9f else 0.65f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = service.accentColor.copy(alpha = if (isEnabled) 0.12f else 0.08f),
+                        modifier = Modifier.wrapContentWidth()
+                    ) {
+                        Text(
+                            text = service.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = service.accentColor.copy(alpha = if (isEnabled) 0.9f else 0.6f),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
 
-                if (!canToggle && isEnabled) {
-                    Text(
-                        text = if (isDefault && !loadLastAiEnabled) "Default AI cannot be disabled"
-                        else "Last enabled AI cannot be disabled",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
+                    if (!canToggle && isEnabled) {
+                        Text(
+                            text = if (isDefault && !loadLastAiEnabled) "• Default"
+                            else "• Last enabled",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                        )
+                    } else {
+                        Text(
+                            text = "• ${service.description}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                alpha = if (isEnabled) 0.7f else 0.5f
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
 
-            TrailingControls(
+            TrailingControlsCompact(
                 isEnabled = isEnabled,
                 canToggle = canToggle,
                 isFirst = isFirst,
@@ -238,44 +258,24 @@ fun AiServiceItem(
 }
 
 @Composable
-private fun CompactServiceIcon(service: AiService, isEnabled: Boolean) {
-    val accent = service.accentColor
-
+private fun DefaultBadgeCompact() {
     Surface(
-        shape = CircleShape,
-        color = if (isEnabled) accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = if (isEnabled) 6.dp else 1.dp,
-        modifier = Modifier.size(56.dp)
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.wrapContentWidth()
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = serviceIcons[service.id] ?: Icons.Rounded.SmartToy,
-                contentDescription = null,
-                tint = if (isEnabled) accent else accent.copy(alpha = 0.55f),
-                modifier = Modifier.size(32.dp)
-            )
-        }
+        Text(
+            "Default",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
 }
 
 @Composable
-private fun DefaultBadge() {
-    AssistChip(
-        onClick = {}, label = {
-        Text(
-            "Default",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-    }, colors = AssistChipDefaults.assistChipColors(
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-    ), shape = RoundedCornerShape(16.dp), border = null
-    )
-}
-
-@Composable
-private fun TrailingControls(
+private fun TrailingControlsCompact(
     isEnabled: Boolean,
     canToggle: Boolean,
     isFirst: Boolean,
@@ -286,7 +286,7 @@ private fun TrailingControls(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Switch(
             checked = isEnabled,
@@ -297,29 +297,32 @@ private fun TrailingControls(
                 checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.32f),
                 uncheckedThumbColor = MaterialTheme.colorScheme.outline,
                 uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+            ),
+            modifier = Modifier.scale(0.8f)
         )
 
         Column {
             IconButton(
-                onClick = onMoveUp, enabled = !isFirst, modifier = Modifier.size(44.dp)
+                onClick = onMoveUp, enabled = !isFirst, modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.Rounded.ArrowDropUp,
                     contentDescription = "Move up",
-                    tint = if (!isFirst) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
+                    tint = if (!isFirst) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
             IconButton(
-                onClick = onMoveDown, enabled = !isLast, modifier = Modifier.size(44.dp)
+                onClick = onMoveDown, enabled = !isLast, modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.Rounded.ArrowDropDown,
                     contentDescription = "Move down",
-                    tint = if (!isLast) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
+                    tint = if (!isLast) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
