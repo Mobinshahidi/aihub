@@ -24,6 +24,8 @@ class SettingsManager(context: Context) {
         private const val KEY_ALWAYS_BLOCKED_DOMAINS = "always_blocked_domains_json"
         private const val KEY_COMMON_AUTH_DOMAINS = "common_auth_domains_json"
         private const val KEY_TRACKING_PARAMS = "tracking_params_json"
+        private const val KEY_AI_VERSION = "ai_version_json"
+        private const val KEY_AI_SERVICES = "ai_services_json"
     }
 
     fun getDomainConfigVersion(): String? {
@@ -58,6 +60,16 @@ class SettingsManager(context: Context) {
         return sharedPref.contains(KEY_DOMAIN_CONFIG_VERSION)
     }
 
+    fun getAiServices(): List<List<String>> {
+        val json = sharedPref.getString(KEY_AI_SERVICES, null) ?: return emptyList()
+        val type = object : TypeToken<List<List<String>>>() {}.type
+        return gson.fromJson(json, type) ?: emptyList()
+    }
+
+    fun getAiVersion(): String? {
+        return sharedPref.getString(KEY_AI_VERSION, null)
+    }
+
     fun saveDomainConfig(
         version: String,
         serviceDomains: Map<String, List<String>>,
@@ -75,7 +87,8 @@ class SettingsManager(context: Context) {
         Log.i("SettingsManager", "Domain config saved - version: $version")
     }
 
-    fun cleanupAndFixServices() {
+    fun cleanupAndFixServices(context: Context) {
+        refreshAiServicesFromSettings(context)
         val currentServices = aiServices.map { it.id }.toSet()
 
         Log.d("AI_HUB", "cleanupAndFixServices - Current: ${currentServices.size} services")
@@ -112,8 +125,7 @@ class SettingsManager(context: Context) {
                 val newDefault =
                     newEnabled.firstOrNull() ?: currentServices.firstOrNull() ?: "chatgpt"
                 Log.w(
-                    "AI_HUB",
-                    "Default changed from '${settings.defaultServiceId}' to '$newDefault'"
+                    "AI_HUB", "Default changed from '${settings.defaultServiceId}' to '$newDefault'"
                 )
                 settings.defaultServiceId = newDefault
             }
@@ -130,6 +142,15 @@ class SettingsManager(context: Context) {
         update(current)
         saveSettings(current)
         _settingsFlow.value = current
+    }
+
+    fun saveAiServices(version: String, aiServices: List<List<String>>) {
+        sharedPref.edit {
+            putString(KEY_AI_VERSION, version)
+            putString(KEY_AI_SERVICES, gson.toJson(aiServices))
+        }
+
+        Log.i("AI_HUB", "AI services saved - version: $version")
     }
 
     private fun loadSettings(): AppSettings {
