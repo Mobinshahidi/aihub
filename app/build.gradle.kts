@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -15,15 +16,8 @@ android {
         applicationId = "com.foss.aihub"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.4"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
+        versionCode = 6
+        versionName = "2.0.0"
     }
 
     compileOptions {
@@ -45,6 +39,48 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
+    }
+
+    val keystorePropertiesFile = file("../local.properties")
+    val keystoreProperties = Properties()
+    val keystoreExists = keystorePropertiesFile.exists()
+
+    if (keystoreExists) {
+        keystoreProperties.load(keystorePropertiesFile.inputStream())
+        println("Keystore properties loaded successfully.")
+    } else {
+        println("Keystore properties file not found. No signing configuration will be applied.")
+    }
+
+    signingConfigs {
+        if (keystoreExists) {
+            create("release") {
+                storeFile = file("$rootDir/keystore.jks")
+                storePassword = keystoreProperties.getProperty("KEYSTORE_PASSWORD") ?: ""
+                keyAlias = keystoreProperties.getProperty("KEY_ALIAS") ?: ""
+                keyPassword = keystoreProperties.getProperty("KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
+            if (keystoreExists) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+
+        getByName("debug") {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+        }
     }
 }
 
@@ -82,6 +118,5 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:3.4.0")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
-    implementation("sh.calvin.reorderable:reorderable:3.0.0")
 
 }
