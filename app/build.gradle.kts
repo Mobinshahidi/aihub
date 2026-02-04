@@ -27,7 +27,6 @@ android {
 
     //noinspection WrongGradleMethod
     kotlin {
-        jvmToolchain(17)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
@@ -39,6 +38,11 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
+    }
+
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     val keystorePropertiesFile = file("../local.properties")
