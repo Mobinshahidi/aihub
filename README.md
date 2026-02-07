@@ -66,6 +66,9 @@
 
 <br>
 
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/SilentCoderHere/aihub.svg?variant=adaptive)](https://starchart.cc/SilentCoderHere/aihub)
+
 ## 🙏 Special Thanks
 
 - **[Nora](https://github.com/nonbili/Nora)** – Gave me the original idea for this app
