@@ -28,72 +28,74 @@ import com.foss.aihub.models.AiService
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AiHubAppBar(
-    selectedService: AiService,
-    onMenuClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    modifier: Modifier = Modifier
+selectedService: AiService,
+onMenuClick: () -> Unit,
+onSettingsClick: () -> Unit,
+modifier: Modifier = Modifier,
+titleOverride: String? = null
 ) {
-    TopAppBar(
-        modifier = modifier, title = {
-        AnimatedContent(
-            targetState = selectedService, transitionSpec = {
-                fadeIn(animationSpec = tween(220, delayMillis = 90)) togetherWith fadeOut(
-                    animationSpec = tween(90)
-                )
-            }, label = "service title"
-        ) { service ->
-            Text(
-                text = service.name,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }, navigationIcon = {
-        IconButton(onClick = onMenuClick) {
-            Icon(Icons.Rounded.Menu, "Menu")
-        }
-    }, actions = {
-        IconButton(onClick = onSettingsClick) {
-            Icon(Icons.Rounded.Settings, "Settings")
-        }
-    }, colors = TopAppBarDefaults.topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.surface,
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-        actionIconContentColor = MaterialTheme.colorScheme.onSurface
-    )
-    )
+val title = titleOverride ?: selectedService.name
+TopAppBar(
+modifier = modifier, title = {
+AnimatedContent(
+targetState = title, transitionSpec = {
+fadeIn(animationSpec = tween(220, delayMillis = 90)) togetherWith fadeOut(
+animationSpec = tween(90)
+)
+}, label = "service title"
+) { currentTitle ->
+Text(
+text = currentTitle,
+style = MaterialTheme.typography.titleLarge,
+fontWeight = FontWeight.Medium,
+maxLines = 1,
+overflow = TextOverflow.Ellipsis
+)
+}
+}, navigationIcon = {
+IconButton(onClick = onMenuClick) {
+Icon(Icons.Rounded.Menu, "Menu")
+}
+}, actions = {
+IconButton(onClick = onSettingsClick) {
+Icon(Icons.Rounded.Settings, "Settings")
+}
+}, colors = TopAppBarDefaults.topAppBarColors(
+containerColor = MaterialTheme.colorScheme.surface,
+titleContentColor = MaterialTheme.colorScheme.onSurface,
+navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+actionIconContentColor = MaterialTheme.colorScheme.onSurface
+)
+)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Md3TopAppBar(
-    title: String,
-    onBack: (() -> Unit)? = null,
-    scrollBehavior: TopAppBarScrollBehavior? = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+title: String,
+onBack: (() -> Unit)? = null,
+scrollBehavior: TopAppBarScrollBehavior? = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 ) {
-    TopAppBar(
-        title = {
-        Text(
-            text = title, style = MaterialTheme.typography.titleLarge
-        )
-    }, navigationIcon = {
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back"
-                )
-            }
-        }
-    }, colors = TopAppBarDefaults.topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.surface,
-        scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-        titleContentColor = MaterialTheme.colorScheme.onSurface,
-        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
-        actionIconContentColor = MaterialTheme.colorScheme.onSurface
-    ), scrollBehavior = scrollBehavior
-    )
+TopAppBar(
+title = {
+Text(
+text = title, style = MaterialTheme.typography.titleLarge
+)
+}, navigationIcon = {
+if (onBack != null) {
+IconButton(onClick = onBack) {
+Icon(
+imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+contentDescription = "Back"
+)
+}
+}
+}, colors = TopAppBarDefaults.topAppBarColors(
+containerColor = MaterialTheme.colorScheme.surface,
+scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+titleContentColor = MaterialTheme.colorScheme.onSurface,
+navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+actionIconContentColor = MaterialTheme.colorScheme.onSurface
+), scrollBehavior = scrollBehavior
+)
 }

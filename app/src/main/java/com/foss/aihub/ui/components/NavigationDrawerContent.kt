@@ -57,197 +57,209 @@ import com.foss.aihub.utils.aiServices
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DrawerContent(
-    selectedService: AiService,
-    onServiceSelected: (AiService) -> Unit,
-    onServiceReload: (AiService) -> Unit,
-    webViewStates: Map<String, WebViewState>,
-    enabledServices: Set<String>,
-    serviceOrder: List<String>,
-    modifier: Modifier = Modifier
+selectedService: AiService,
+onServiceSelected: (AiService) -> Unit,
+onServiceReload: (AiService) -> Unit,
+onCompareClick: () -> Unit,
+webViewStates: Map<String, WebViewState>,
+enabledServices: Set<String>,
+serviceOrder: List<String>,
+modifier: Modifier = Modifier
 ) {
-    val colorScheme = MaterialTheme.colorScheme
+val colorScheme = MaterialTheme.colorScheme
 
-    val orderedEnabledServices = remember(enabledServices, serviceOrder, aiServices.toList()) {
-        serviceOrder.filter { it in enabledServices }
-            .mapNotNull { id -> aiServices.find { it.id == id } }
-    }
+val orderedEnabledServices = remember(enabledServices, serviceOrder, aiServices.toList()) {
+serviceOrder.filter { it in enabledServices }
+.mapNotNull { id -> aiServices.find { it.id == id } }
+}
 
-    var showAboutDialog by remember { mutableStateOf(false) }
+var showAboutDialog by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = modifier
-            .fillMaxWidth(0.86f)
-            .clip(RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)),
-        color = colorScheme.surfaceContainerLowest,
-        tonalElevation = 1.dp,
-        border = BorderStroke(0.5.dp, colorScheme.outlineVariant.copy(alpha = 0.18f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                colorScheme.primary.copy(alpha = 0.07f), Color.Transparent
-                            )
-                        )
-                    )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            top = WindowInsets.statusBars.asPaddingValues()
-                                .calculateTopPadding() + 24.dp,
-                            start = 24.dp,
-                            end = 24.dp,
-                            bottom = 20.dp
-                        )
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = colorScheme.primary,
-                            tonalElevation = 4.dp,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_launcher_foreground),
-                                    contentDescription = "AI Hub Logo",
-                                    tint = colorScheme.onPrimary,
-                                    modifier = Modifier.size(56.dp)
-                                )
-                            }
-                        }
+Surface(
+modifier = modifier
+.fillMaxWidth(0.86f)
+.clip(RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp)),
+color = colorScheme.surfaceContainerLowest,
+tonalElevation = 1.dp,
+border = BorderStroke(0.5.dp, colorScheme.outlineVariant.copy(alpha = 0.18f))
+) {
+Column(
+modifier = Modifier
+.fillMaxSize()
+.verticalScroll(rememberScrollState())
+.navigationBarsPadding()
+) {
+Box(
+modifier = Modifier
+.fillMaxWidth()
+.background(
+brush = Brush.verticalGradient(
+colors = listOf(
+colorScheme.primary.copy(alpha = 0.07f), Color.Transparent
+)
+)
+)
+) {
+Column(
+modifier = Modifier
+.fillMaxWidth()
+.padding(
+top = WindowInsets.statusBars.asPaddingValues()
+.calculateTopPadding() + 24.dp,
+start = 24.dp,
+end = 24.dp,
+bottom = 20.dp
+)
+) {
+Row(
+verticalAlignment = Alignment.CenterVertically,
+horizontalArrangement = Arrangement.spacedBy(16.dp)
+) {
+Surface(
+shape = CircleShape,
+color = colorScheme.primary,
+tonalElevation = 4.dp,
+modifier = Modifier.size(56.dp)
+) {
+Box(contentAlignment = Alignment.Center) {
+Icon(
+painter = painterResource(R.drawable.ic_launcher_foreground),
+contentDescription = "AI Hub Logo",
+tint = colorScheme.onPrimary,
+modifier = Modifier.size(56.dp)
+)
+}
+}
 
-                        Column {
-                            Text(
-                                "AI Hub", style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp
-                                ), color = colorScheme.onSurface
-                            )
-                            Text(
-                                "Your AI Companion Collection",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
+Column {
+Text(
+"AI Hub", style = MaterialTheme.typography.titleLarge.copy(
+fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp
+), color = colorScheme.onSurface
+)
+Text(
+"Your AI Companion Collection",
+style = MaterialTheme.typography.bodyMedium,
+color = colorScheme.onSurfaceVariant,
+fontWeight = FontWeight.Medium
+)
+}
+}
+}
+}
 
-            Text(
-                text = "AI Assistants",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = colorScheme.onSurface,
-                modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 12.dp)
-            )
+Text(
+text = "AI Assistants",
+style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+color = colorScheme.onSurface,
+modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 12.dp)
+)
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 20.dp)
-            ) {
-                items(orderedEnabledServices) { service ->
-                    val state = webViewStates[service.id] ?: WebViewState.IDLE
-                    Md3ServiceCard(
-                        service = service,
-                        serviceColor = service.accentColor,
-                        isSelected = selectedService.id == service.id,
-                        state = state,
-                        onClick = {
-                            if (selectedService.id == service.id) {
-                                onServiceReload(service)
-                            } else {
-                                onServiceSelected(service)
-                            }
-                        })
-                }
-            }
+LazyColumn(
+modifier = Modifier
+.fillMaxWidth()
+.weight(1f)
+.padding(horizontal = 16.dp),
+verticalArrangement = Arrangement.spacedBy(12.dp),
+contentPadding = PaddingValues(bottom = 20.dp)
+) {
+items(orderedEnabledServices) { service ->
+val state = webViewStates[service.id] ?: WebViewState.IDLE
+Md3ServiceCard(
+service = service,
+serviceColor = service.accentColor,
+isSelected = selectedService.id == service.id,
+state = state,
+onClick = {
+if (selectedService.id == service.id) {
+onServiceReload(service)
+} else {
+onServiceSelected(service)
+}
+})
+}
+}
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceContainerHigh),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = colorScheme.primaryContainer,
-                            tonalElevation = 2.dp,
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    "${orderedEnabledServices.size}",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
+FilledTonalButton(
+onClick = onCompareClick,
+shape = RoundedCornerShape(16.dp),
+modifier = Modifier
+.fillMaxWidth()
+.padding(horizontal = 16.dp)
+.height(44.dp)
+) {
+Text("Compare models", style = MaterialTheme.typography.labelLarge)
+}
 
-                        Column {
-                            Text(
-                                "AI Assistants",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
-                                color = colorScheme.onSurface
-                            )
-                            Text(
-                                "Ready to assist",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+Card(
+modifier = Modifier
+.fillMaxWidth()
+.padding(horizontal = 16.dp, vertical = 12.dp),
+shape = RoundedCornerShape(24.dp),
+colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceContainerHigh),
+elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+) {
+Row(
+modifier = Modifier
+.fillMaxWidth()
+.padding(horizontal = 16.dp, vertical = 12.dp),
+horizontalArrangement = Arrangement.SpaceBetween,
+verticalAlignment = Alignment.CenterVertically
+) {
+Row(
+verticalAlignment = Alignment.CenterVertically,
+horizontalArrangement = Arrangement.spacedBy(12.dp)
+) {
+Surface(
+shape = CircleShape,
+color = colorScheme.primaryContainer,
+tonalElevation = 2.dp,
+modifier = Modifier.size(40.dp)
+) {
+Box(contentAlignment = Alignment.Center) {
+Text(
+"${orderedEnabledServices.size}",
+style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+color = colorScheme.onPrimaryContainer
+)
+}
+}
 
-                    FilledTonalButton(
-                        onClick = { showAboutDialog = true },
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text("About", style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
-            }
-        }
-    }
+Column {
+Text(
+"AI Assistants",
+style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+color = colorScheme.onSurface
+)
+Text(
+"Ready to assist",
+style = MaterialTheme.typography.bodySmall,
+color = colorScheme.onSurfaceVariant
+)
+}
+}
 
-    if (showAboutDialog) {
-        AboutDialog { showAboutDialog = false }
-    }
+FilledTonalButton(
+onClick = { showAboutDialog = true },
+shape = RoundedCornerShape(16.dp),
+modifier = Modifier.height(36.dp)
+) {
+Row(verticalAlignment = Alignment.CenterVertically) {
+Icon(
+Icons.Rounded.Info,
+contentDescription = null,
+modifier = Modifier.size(16.dp)
+)
+Spacer(Modifier.width(8.dp))
+Text("About", style = MaterialTheme.typography.labelMedium)
+}
+}
+}
+}
+}
+}
+
+if (showAboutDialog) {
+AboutDialog { showAboutDialog = false }
+}
 }
